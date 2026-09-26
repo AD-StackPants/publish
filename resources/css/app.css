@@ -1,4 +1,7 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+
+/* Imports all components and links theme variables to Tailwind v4 */
+@import "@ad-technology-inc/design-system/app.css";
 
 @import 'tw-animate-css';
 
