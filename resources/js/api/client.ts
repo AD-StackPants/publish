@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { setupMockAdapter } from '../mocks/mockAdapter';
 import { DEFAULT_ORG } from '../mocks/data';
+import { setupMockAdapter } from '../mocks/mockAdapter';
 
 export const apiClient = axios.create({
     baseURL: '/api/v1',
@@ -32,7 +32,12 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
-// Always mount adapter with populated API data
-setupMockAdapter(apiClient);
+// Mount the mock adapter only in demo mode (VITE_APP_ENV=demo).
+// In local / staging / production the real Laravel API is called directly.
+// Vite statically replaces import.meta.env.VITE_APP_ENV at build time,
+// so dead-code elimination removes the mock adapter from non-demo bundles.
+if (import.meta.env.VITE_APP_ENV === 'demo') {
+    setupMockAdapter(apiClient);
+}
 
 export default apiClient;
