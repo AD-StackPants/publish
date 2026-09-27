@@ -217,8 +217,30 @@ const getProviderBadge = (provider: string) => {
             </button>
         </div>
 
+        <!-- Empty State -->
+        <div
+            v-if="accounts.length === 0 && !workspaceStore.isAccountsLoading"
+            class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-16 text-center"
+        >
+            <div class="mb-4 flex size-14 items-center justify-center rounded-2xl border border-border bg-muted shadow-xs">
+                <Radio class="size-6 text-muted-foreground" />
+            </div>
+            <h3 class="text-sm font-semibold text-foreground">No channels connected</h3>
+            <p class="mt-1 max-w-xs text-xs text-muted-foreground">
+                Connect a social profile to start scheduling and publishing posts across your networks.
+            </p>
+            <button
+                type="button"
+                @click="openConnectModal"
+                class="mt-5 inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs transition hover:bg-primary/90"
+            >
+                <Plus class="size-3.5" />
+                Connect your first profile
+            </button>
+        </div>
+
         <!-- Channel Cards Grid -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div
                 v-for="acc in accounts"
                 :key="acc.id"
