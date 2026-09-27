@@ -8,11 +8,10 @@ import type {
     CartItem,
     Invoice,
 } from '../types/billing';
-import { INITIAL_PLANS, INITIAL_SUBSCRIPTION } from '../mocks/billingMock';
 
 export const useBillingStore = defineStore('billing', () => {
     // Plans catalog
-    const plans = ref<Plan[]>(INITIAL_PLANS);
+    const plans = ref<Plan[]>([]);
     const basePlans = computed(() =>
         plans.value.filter((p) => p.type === 'base_plan'),
     );
@@ -21,17 +20,13 @@ export const useBillingStore = defineStore('billing', () => {
     );
 
     // Active subscription state
-    const currentPlan = ref<Plan>(INITIAL_SUBSCRIPTION.currentPlan);
-    const status = ref<'active' | 'past_due' | 'canceled' | 'trialing'>(
-        INITIAL_SUBSCRIPTION.status,
-    );
-    const periodStart = ref<string>(INITIAL_SUBSCRIPTION.periodStart);
-    const periodEnd = ref<string>(INITIAL_SUBSCRIPTION.periodEnd);
-    const cancelAtPeriodEnd = ref<boolean>(
-        INITIAL_SUBSCRIPTION.cancelAtPeriodEnd,
-    );
-    const activeAddons = ref<ActiveAddon[]>(INITIAL_SUBSCRIPTION.activeAddons);
-    const invoices = ref<Invoice[]>(INITIAL_SUBSCRIPTION.invoices);
+    const currentPlan = ref<Plan | null>(null);
+    const status = ref<'active' | 'past_due' | 'canceled' | 'trialing' | null>(null);
+    const periodStart = ref<string | null>(null);
+    const periodEnd = ref<string | null>(null);
+    const cancelAtPeriodEnd = ref<boolean>(false);
+    const activeAddons = ref<ActiveAddon[]>([]);
+    const invoices = ref<Invoice[]>([]);
 
     // Multi-item interactive Cart
     const cart = ref<CartItem[]>([]);
