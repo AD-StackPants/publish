@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ConnectSocialAccountRequest;
 use App\Services\SocialAccountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,8 @@ final class SocialAccountController extends Controller
 
     /**
      * GET /api/v1/accounts
+     *
+     * List all connected social accounts scoped to the tenant.
      */
     public function index(Request $request): JsonResponse
     {
@@ -29,18 +32,14 @@ final class SocialAccountController extends Controller
 
     /**
      * POST /api/v1/accounts
+     *
+     * Connect a new social account to the tenant workspace.
      */
-    public function store(Request $request): JsonResponse
+    public function store(ConnectSocialAccountRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'provider' => ['required', 'string', 'in:linkedin,facebook,twitter'],
-            'name' => ['required', 'string', 'max:255'],
-            'account_id' => ['nullable', 'string'],
-            'avatar_url' => ['nullable', 'url'],
-            'access_token' => ['nullable', 'string'],
-        ]);
+        $tenantId  = (string) $request->attributes->get('tenant_id');
+        $validated = $request->validated();
 
-        $tenantId = (string) $request->attributes->get('tenant_id');
         $account = $this->accountService->connectAccount($tenantId, $validated);
 
         return response()->json($account, Response::HTTP_CREATED);
@@ -48,6 +47,8 @@ final class SocialAccountController extends Controller
 
     /**
      * DELETE /api/v1/accounts/{id}
+     *
+     * Disconnect (remove) a social account from the tenant workspace.
      */
     public function destroy(Request $request, string $id): Response
     {
@@ -59,11 +60,13 @@ final class SocialAccountController extends Controller
 
     /**
      * POST /api/v1/accounts/{id}/reconnect
+     *
+     * Re-authenticate / restore health status of an existing social account.
      */
     public function reconnect(Request $request, string $id): JsonResponse
     {
         $tenantId = (string) $request->attributes->get('tenant_id');
-        $account = $this->accountService->reconnectAccount($tenantId, $id);
+        $account  = $this->accountService->reconnectAccount($tenantId, $id);
 
         return response()->json($account);
     }
