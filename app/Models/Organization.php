@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 final class Organization extends Model
 {
-    use HasUuids;
+    /** @use HasFactory<OrganizationFactory> */
+    use HasFactory, HasUuids;
 
     /**
      * @var list<string>
@@ -62,5 +65,13 @@ final class Organization extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    /**
+     * @return HasMany<User, $this>
+     */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
     }
 }

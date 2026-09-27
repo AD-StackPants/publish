@@ -32,15 +32,18 @@ test('database seeder seeds stackpants tenant, active subscription, test user, a
     expect($subscription->status)->toBe('active');
     expect($subscription->basePlan()?->slug)->toBe('plan-pro');
 
-    // Verify standard user with test email
+    // Verify standard user with test email assigned to tenant
     $testUser = User::query()->where('email', 'test@example.com')->first();
     expect($testUser)->not->toBeNull();
+    expect($testUser->organization_id)->toBe($tenant->id);
+    expect($testUser->organization?->slug)->toBe('stackpants');
     expect($testUser->isSuperAdmin())->toBeFalse();
     expect($testUser->canBypassSubscription())->toBeFalse();
 
     // Verify superadmin users
     $superadmin = User::query()->where('email', 'superadmin@stackpants.com')->first();
     expect($superadmin)->not->toBeNull();
+    expect($superadmin->organization_id)->toBe($tenant->id);
     expect($superadmin->isSuperAdmin())->toBeTrue();
     expect($superadmin->canBypassSubscription())->toBeTrue();
 

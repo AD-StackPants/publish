@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureTenantAccess;
 use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -11,7 +12,7 @@ Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->prefix('w/{tenant_slug}')->group(function () {
+Route::middleware(['auth', 'verified', EnsureTenantAccess::class])->prefix('w/{tenant_slug}')->group(function () {
     Route::get('/', function (string $tenant_slug) {
         return redirect("/w/{$tenant_slug}/posts");
     });
@@ -50,28 +51,40 @@ Route::middleware(['auth', 'verified'])->prefix('w/{tenant_slug}')->group(functi
 Route::middleware(['auth', 'verified'])->group(function () {
     // !FIXME: move logic to controller
     Route::get('dashboard', function (Request $request) {
+        $user = $request->user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
         /** @var Organization|null $organization */
         $organization = null;
 
-        $preferredSlug = $request->cookie('active_tenant_slug');
-        if (is_string($preferredSlug) && ! empty($preferredSlug)) {
-            $organization = Organization::query()->where('slug', $preferredSlug)->first();
+        if ($user->isSuperAdmin()) {
+            $preferredSlug = $request->cookie('active_tenant_slug');
+            if (is_string($preferredSlug) && ! empty($preferredSlug)) {
+                $organization = Organization::query()->where('slug', $preferredSlug)->first();
+            }
+            if (! $organization) {
+                $organization = $user->organization ?? Organization::query()->first();
+            }
+        } else {
+            $organization = $user->organization;
         }
 
         if (! $organization) {
-            $organization = Organization::query()->first();
-        }
-
-        if (! $organization) {
-            $user = $request->user();
             $baseSlug = $user ? Str::slug($user->name) : 'workspace';
             $slug = ! empty($baseSlug) ? $baseSlug : 'workspace';
+            if (Organization::query()->where('slug', $slug)->exists()) {
+                $slug .= '-'.Str::lower(Str::random(4));
+            }
 
             $organization = Organization::query()->create([
                 'name' => ($user ? $user->name : 'My').' Workspace',
                 'slug' => $slug,
                 'timezone' => 'UTC',
             ]);
+
+            $user->update(['organization_id' => $organization->id]);
         }
 
         $redirectPath = $request->query('redirect', '/posts');

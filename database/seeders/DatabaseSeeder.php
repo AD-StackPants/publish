@@ -153,7 +153,7 @@ final class DatabaseSeeder extends Seeder
             );
         }
 
-        // 4. Seed Standard User (keeping test email: test@example.com)
+        // 4. Seed Standard User (keeping test email: test@example.com) assigned to "stackpants" tenant
         $defaultPassword = Hash::make('password');
 
         User::query()->updateOrCreate(
@@ -162,6 +162,7 @@ final class DatabaseSeeder extends Seeder
                 'name' => 'Test User',
                 'password' => $defaultPassword,
                 'email_verified_at' => now(),
+                'organization_id' => $tenant->id,
                 'is_superadmin' => false,
             ]
         );
@@ -173,6 +174,7 @@ final class DatabaseSeeder extends Seeder
                 'name' => 'Super Admin',
                 'password' => $defaultPassword,
                 'email_verified_at' => now(),
+                'organization_id' => $tenant->id,
                 'is_superadmin' => true,
             ]
         );
@@ -183,6 +185,7 @@ final class DatabaseSeeder extends Seeder
                 'name' => 'Super Admin',
                 'password' => $defaultPassword,
                 'email_verified_at' => now(),
+                'organization_id' => $tenant->id,
                 'is_superadmin' => true,
             ]
         );

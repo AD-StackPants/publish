@@ -4,12 +4,15 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
@@ -41,6 +44,23 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            /** @var User|null $user */
+            $user = User::query()->where('email', (string) $request->input('email'))->first();
+
+            if ($user && Hash::check((string) $request->input('password'), $user->password)) {
+                if (! $user->isSuperAdmin() && empty($user->organization_id)) {
+                    throw ValidationException::withMessages([
+                        Fortify::username() => ['This account is not associated with any tenant organization. Please contact your administrator.'],
+                    ]);
+                }
+
+                return $user;
+            }
+
+            return null;
+        });
     }
 
     /**
