@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
-import { router, Link, Head } from "@inertiajs/vue3";
-import { useWorkspaceStore } from "@/stores/workspace";
-import { apiClient } from "@/api/client";
-import ImageCropperModal from "@/components/ImageCropperModal.vue";
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { router, Link, Head } from '@inertiajs/vue3';
+import { useWorkspaceStore } from '@/stores/workspace';
+import { apiClient } from '@/api/client';
+import ImageCropperModal from '@/components/ImageCropperModal.vue';
 import type {
     SocialAccount,
     LinkMetadata,
     PlatformOverrides,
-} from "@/types/workspace";
+} from '@/types/workspace';
 import {
     Send,
     Calendar,
@@ -31,31 +31,31 @@ import {
     Share2,
     X,
     AlertTriangle,
-} from "@lucide/vue";
+} from '@lucide/vue';
 
 const workspaceStore = useWorkspaceStore();
 
 // Form state
-const content = ref("");
+const content = ref('');
 const selectedAccountIds = ref<string[]>([]);
-const mediaUrl = ref<string>("");
+const mediaUrl = ref<string>('');
 const linkMetadata = ref<LinkMetadata | null>(null);
-const linkUrlInput = ref("");
+const linkUrlInput = ref('');
 const isFetchingLink = ref(false);
 
 // Platform overrides (Twitter, LinkedIn, and Facebook)
-const activeTab = ref<"base" | "twitter" | "linkedin" | "facebook">("base");
+const activeTab = ref<'base' | 'twitter' | 'linkedin' | 'facebook'>('base');
 const hasTwitterOverride = ref(false);
-const twitterContent = ref("");
+const twitterContent = ref('');
 const hasLinkedInOverride = ref(false);
-const linkedinContent = ref("");
+const linkedinContent = ref('');
 const hasFacebookOverride = ref(false);
-const facebookContent = ref("");
+const facebookContent = ref('');
 
 // Scheduling & Idempotency
 const isScheduled = ref(false);
-const scheduledDate = ref("");
-const scheduledTime = ref("");
+const scheduledDate = ref('');
+const scheduledTime = ref('');
 const isSubmitting = ref(false);
 const dispatchSuccessMessage = ref<string | null>(null);
 
@@ -68,17 +68,17 @@ const isLinkInputOpen = ref(false);
 
 // Auto-Save & Storage Keys
 const lastSavedAt = ref<string | null>(null);
-const DRAFT_STORAGE_KEY = "workspace_composer_draft";
+const DRAFT_STORAGE_KEY = 'workspace_composer_draft';
 const STORAGE_SELECTED_ACCOUNTS_PREFIX =
-    "socialsync_composer_selected_accounts_";
+    'socialsync_composer_selected_accounts_';
 
 // Live Preview platform toggle
-const previewPlatform = ref<"twitter" | "linkedin" | "facebook">("twitter");
+const previewPlatform = ref<'twitter' | 'linkedin' | 'facebook'>('twitter');
 
 // Auto-sync live preview when switching composer override tab
 watch(activeTab, (tab) => {
-    if (tab === "twitter") {
-        previewPlatform.value = "twitter";
+    if (tab === 'twitter') {
+        previewPlatform.value = 'twitter';
         if (
             hasTwitterOverride.value &&
             !twitterContent.value &&
@@ -86,8 +86,8 @@ watch(activeTab, (tab) => {
         ) {
             twitterContent.value = content.value;
         }
-    } else if (tab === "linkedin") {
-        previewPlatform.value = "linkedin";
+    } else if (tab === 'linkedin') {
+        previewPlatform.value = 'linkedin';
         if (
             hasLinkedInOverride.value &&
             !linkedinContent.value &&
@@ -95,8 +95,8 @@ watch(activeTab, (tab) => {
         ) {
             linkedinContent.value = content.value;
         }
-    } else if (tab === "facebook") {
-        previewPlatform.value = "facebook";
+    } else if (tab === 'facebook') {
+        previewPlatform.value = 'facebook';
         if (
             hasFacebookOverride.value &&
             !facebookContent.value &&
@@ -108,37 +108,37 @@ watch(activeTab, (tab) => {
 });
 
 // Platform override helper actions
-const copyFromUniversal = (platform: "twitter" | "linkedin" | "facebook") => {
-    if (platform === "twitter") {
+const copyFromUniversal = (platform: 'twitter' | 'linkedin' | 'facebook') => {
+    if (platform === 'twitter') {
         hasTwitterOverride.value = true;
         twitterContent.value = content.value;
-    } else if (platform === "linkedin") {
+    } else if (platform === 'linkedin') {
         hasLinkedInOverride.value = true;
         linkedinContent.value = content.value;
-    } else if (platform === "facebook") {
+    } else if (platform === 'facebook') {
         hasFacebookOverride.value = true;
         facebookContent.value = content.value;
     }
 };
 
-const resetToUniversal = (platform: "twitter" | "linkedin" | "facebook") => {
-    if (platform === "twitter") {
+const resetToUniversal = (platform: 'twitter' | 'linkedin' | 'facebook') => {
+    if (platform === 'twitter') {
         hasTwitterOverride.value = false;
-        twitterContent.value = "";
-    } else if (platform === "linkedin") {
+        twitterContent.value = '';
+    } else if (platform === 'linkedin') {
         hasLinkedInOverride.value = false;
-        linkedinContent.value = "";
-    } else if (platform === "facebook") {
+        linkedinContent.value = '';
+    } else if (platform === 'facebook') {
         hasFacebookOverride.value = false;
-        facebookContent.value = "";
+        facebookContent.value = '';
     }
 };
 
 // Generate client-side UUIDv4 idempotency key
 const generateUUID = () => {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
         const r = (Math.random() * 16) | 0;
-        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
 };
@@ -147,7 +147,7 @@ const generateUUID = () => {
 const accounts = computed<SocialAccount[]>(() => workspaceStore.accounts);
 
 const healthyAccounts = computed(() => {
-    return accounts.value.filter((a) => a.status !== "revoked");
+    return accounts.value.filter((a) => a.status !== 'revoked');
 });
 
 const activeAccounts = computed(() => {
@@ -165,22 +165,22 @@ const activeAccountAvatars = computed<string[]>(() => {
 // Specific platform accounts for feed preview cards
 const activeTwitterAccount = computed(() => {
     return (
-        activeAccounts.value.find((a) => a.provider === "twitter") ||
-        accounts.value.find((a) => a.provider === "twitter")
+        activeAccounts.value.find((a) => a.provider === 'twitter') ||
+        accounts.value.find((a) => a.provider === 'twitter')
     );
 });
 
 const activeLinkedInAccount = computed(() => {
     return (
-        activeAccounts.value.find((a) => a.provider === "linkedin") ||
-        accounts.value.find((a) => a.provider === "linkedin")
+        activeAccounts.value.find((a) => a.provider === 'linkedin') ||
+        accounts.value.find((a) => a.provider === 'linkedin')
     );
 });
 
 const activeFacebookAccount = computed(() => {
     return (
-        activeAccounts.value.find((a) => a.provider === "facebook") ||
-        accounts.value.find((a) => a.provider === "facebook")
+        activeAccounts.value.find((a) => a.provider === 'facebook') ||
+        accounts.value.find((a) => a.provider === 'facebook')
     );
 });
 
@@ -208,7 +208,7 @@ const resolvedFacebookText = computed(() => {
 
 // Selected platforms & Solo Targeting
 const selectedPlatforms = computed(() => {
-    const platforms = new Set<"twitter" | "linkedin" | "facebook">();
+    const platforms = new Set<'twitter' | 'linkedin' | 'facebook'>();
     healthyAccounts.value
         .filter((a) => selectedAccountIds.value.includes(a.id))
         .forEach((a) => platforms.add(a.provider));
@@ -219,17 +219,17 @@ const isSinglePlatform = computed(() => selectedPlatforms.value.size === 1);
 const isTwitterOnly = computed(
     () =>
         selectedPlatforms.value.size === 1 &&
-        selectedPlatforms.value.has("twitter"),
+        selectedPlatforms.value.has('twitter'),
 );
 const isLinkedInOnly = computed(
     () =>
         selectedPlatforms.value.size === 1 &&
-        selectedPlatforms.value.has("linkedin"),
+        selectedPlatforms.value.has('linkedin'),
 );
 const isFacebookOnly = computed(
     () =>
         selectedPlatforms.value.size === 1 &&
-        selectedPlatforms.value.has("facebook"),
+        selectedPlatforms.value.has('facebook'),
 );
 
 // Character limits (platform-aware: unselected platforms do not trigger false limit warnings)
@@ -238,7 +238,7 @@ const twitterLimit = 280;
 const isTwitterOver = computed(() => {
     if (
         selectedAccountIds.value.length > 0 &&
-        !selectedPlatforms.value.has("twitter")
+        !selectedPlatforms.value.has('twitter')
     ) {
         return false;
     }
@@ -250,7 +250,7 @@ const linkedinLimit = 3000;
 const isLinkedInOver = computed(() => {
     if (
         selectedAccountIds.value.length > 0 &&
-        !selectedPlatforms.value.has("linkedin")
+        !selectedPlatforms.value.has('linkedin')
     ) {
         return false;
     }
@@ -262,7 +262,7 @@ const facebookLimit = 63206;
 const isFacebookOver = computed(() => {
     if (
         selectedAccountIds.value.length > 0 &&
-        !selectedPlatforms.value.has("facebook")
+        !selectedPlatforms.value.has('facebook')
     ) {
         return false;
     }
@@ -270,7 +270,7 @@ const isFacebookOver = computed(() => {
 });
 
 // Platform Solo Selection
-const selectPlatformOnly = (platform: "twitter" | "linkedin" | "facebook") => {
+const selectPlatformOnly = (platform: 'twitter' | 'linkedin' | 'facebook') => {
     const matchingAccounts = healthyAccounts.value.filter(
         (a) => a.provider === platform,
     );
@@ -279,7 +279,7 @@ const selectPlatformOnly = (platform: "twitter" | "linkedin" | "facebook") => {
     selectedAccountIds.value = matchingAccounts.map((a) => a.id);
     persistSelectedChannels();
     previewPlatform.value = platform;
-    activeTab.value = "base";
+    activeTab.value = 'base';
 };
 
 // Select a single individual account
@@ -290,11 +290,11 @@ const selectSingleAccount = (accountId: string) => {
     selectedAccountIds.value = [accountId];
     persistSelectedChannels();
     previewPlatform.value = acc.provider;
-    activeTab.value = "base";
+    activeTab.value = 'base';
 };
 
 // Add platform accounts to currently selected channels
-const addPlatformAccounts = (platform: "twitter" | "linkedin" | "facebook") => {
+const addPlatformAccounts = (platform: 'twitter' | 'linkedin' | 'facebook') => {
     const platformAccountIds = healthyAccounts.value
         .filter((a) => a.provider === platform)
         .map((a) => a.id);
@@ -343,7 +343,7 @@ const restoreSelectedChannels = () => {
 
 // Account toggle with access feedback
 const toggleAccount = (acc: SocialAccount) => {
-    if (acc.status === "revoked") {
+    if (acc.status === 'revoked') {
         revokedAccountAlert.value = acc;
         return;
     }
@@ -375,26 +375,26 @@ const deselectAll = () => {
 // Preset helpers for schedule
 const setSchedulePreset = (hoursFromNow: number) => {
     const d = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000);
-    scheduledDate.value = d.toISOString().split("T")[0];
-    scheduledTime.value = "10:00";
+    scheduledDate.value = d.toISOString().split('T')[0];
+    scheduledTime.value = '10:00';
 };
 
 // Clear draft
 const clearComposer = () => {
-    if (!confirm("Discard current post draft?")) return;
-    content.value = "";
-    mediaUrl.value = "";
+    if (!confirm('Discard current post draft?')) return;
+    content.value = '';
+    mediaUrl.value = '';
     linkMetadata.value = null;
-    linkUrlInput.value = "";
+    linkUrlInput.value = '';
     hasTwitterOverride.value = false;
-    twitterContent.value = "";
+    twitterContent.value = '';
     hasLinkedInOverride.value = false;
-    linkedinContent.value = "";
+    linkedinContent.value = '';
     hasFacebookOverride.value = false;
-    facebookContent.value = "";
+    facebookContent.value = '';
     isScheduled.value = false;
-    scheduledDate.value = "";
-    scheduledTime.value = "";
+    scheduledDate.value = '';
+    scheduledTime.value = '';
     localStorage.removeItem(DRAFT_STORAGE_KEY);
     lastSavedAt.value = null;
 };
@@ -424,12 +424,12 @@ const fetchLinkMetadata = async (urlToFetch?: string) => {
 
     isFetchingLink.value = true;
     try {
-        const res = await apiClient.get<LinkMetadata>("/tools/preview-link", {
+        const res = await apiClient.get<LinkMetadata>('/tools/preview-link', {
             params: { url: target },
         });
         linkMetadata.value = res.data;
     } catch (err) {
-        console.error("Failed to preview link", err);
+        console.error('Failed to preview link', err);
     } finally {
         isFetchingLink.value = false;
     }
@@ -437,7 +437,7 @@ const fetchLinkMetadata = async (urlToFetch?: string) => {
 
 const removeLinkPreview = () => {
     linkMetadata.value = null;
-    linkUrlInput.value = "";
+    linkUrlInput.value = '';
 };
 
 // Image upload simulator
@@ -458,7 +458,7 @@ const handleCropped = (dataUrl: string) => {
 };
 
 const removeImage = () => {
-    mediaUrl.value = "";
+    mediaUrl.value = '';
 };
 
 // Auto-save logic
@@ -542,12 +542,12 @@ onUnmounted(() => {
 // Dispatch / Publish Post
 const handleDispatch = async (publishImmediate = false) => {
     if (!content.value.trim() && !mediaUrl.value && !linkMetadata.value) {
-        alert("Please write content or attach media before publishing.");
+        alert('Please write content or attach media before publishing.');
         return;
     }
 
     if (selectedAccountIds.value.length === 0) {
-        alert("Please select at least one social channel.");
+        alert('Please select at least one social channel.');
         return;
     }
 
@@ -556,7 +556,7 @@ const handleDispatch = async (publishImmediate = false) => {
 
     let scheduledAt: string | null = null;
     if (!publishImmediate && isScheduled.value && scheduledDate.value) {
-        const timePart = scheduledTime.value || "12:00";
+        const timePart = scheduledTime.value || '12:00';
         scheduledAt = new Date(
             `${scheduledDate.value}T${timePart}:00`,
         ).toISOString();
@@ -583,13 +583,13 @@ const handleDispatch = async (publishImmediate = false) => {
                 Object.keys(overrides).length > 0 ? overrides : null,
             media_url: mediaUrl.value || null,
             link_metadata: linkMetadata.value || null,
-            status: scheduledAt ? "scheduled" : "published",
+            status: scheduledAt ? 'scheduled' : 'published',
             scheduled_at: scheduledAt,
             target_account_ids: selectedAccountIds.value,
             idempotency_key: idempotencyKey,
         };
 
-        await apiClient.post("/social/posts", payload);
+        await apiClient.post('/social/posts', payload);
 
         dispatchSuccessMessage.value = scheduledAt
             ? `Post successfully scheduled for ${new Date(scheduledAt).toLocaleString()}!`
@@ -597,13 +597,13 @@ const handleDispatch = async (publishImmediate = false) => {
 
         // Clear draft
         localStorage.removeItem(DRAFT_STORAGE_KEY);
-        content.value = "";
-        twitterContent.value = "";
-        linkedinContent.value = "";
-        facebookContent.value = "";
-        mediaUrl.value = "";
+        content.value = '';
+        twitterContent.value = '';
+        linkedinContent.value = '';
+        facebookContent.value = '';
+        mediaUrl.value = '';
         linkMetadata.value = null;
-        linkUrlInput.value = "";
+        linkUrlInput.value = '';
         hasTwitterOverride.value = false;
         hasLinkedInOverride.value = false;
         hasFacebookOverride.value = false;
@@ -614,8 +614,8 @@ const handleDispatch = async (publishImmediate = false) => {
             router.visit(`/w/${workspaceStore.activeOrgSlug}/posts`);
         }, 1500);
     } catch (err: any) {
-        console.error("Dispatch failed", err);
-        alert(err?.response?.data?.message || "Failed to dispatch post.");
+        console.error('Dispatch failed', err);
+        alert(err?.response?.data?.message || 'Failed to dispatch post.');
     } finally {
         isSubmitting.value = false;
     }
@@ -706,7 +706,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     >
                                         {{
                                             workspaceStore.currentOrg?.name ||
-                                            "Acme Studio"
+                                            'Acme Studio'
                                         }}
                                     </span>
                                     <span
@@ -717,7 +717,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     </span>
                                 </div>
                                 <p
-                                    class="text-[11px] text-muted-foreground flex items-center gap-1.5"
+                                    class="flex items-center gap-1.5 text-[11px] text-muted-foreground"
                                 >
                                     <template v-if="isTwitterOnly">
                                         <span
@@ -778,7 +778,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                             'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
                                         "
                                         :title="acc.name"
-                                        class="inline-block size-6 rounded-full ring-2 ring-card object-cover"
+                                        class="inline-block size-6 rounded-full object-cover ring-2 ring-card"
                                     />
                                     <span
                                         v-if="activeAccounts.length > 4"
@@ -799,15 +799,15 @@ const handleDispatch = async (publishImmediate = false) => {
 
                     <!-- Platform Override Sub-Tabs (Universal vs Twitter vs LinkedIn vs Facebook with Live Limit Badges) -->
                     <div
-                        class="flex items-center gap-1 border-b border-border/60 bg-muted/10 px-4 pt-2 text-xs overflow-x-auto"
+                        class="flex items-center gap-1 overflow-x-auto border-b border-border/60 bg-muted/10 px-4 pt-2 text-xs"
                     >
                         <button
                             type="button"
                             @click="activeTab = 'base'"
-                            class="relative cursor-pointer rounded-t-md px-3 py-1.5 font-medium transition shrink-0"
+                            class="relative shrink-0 cursor-pointer rounded-t-md px-3 py-1.5 font-medium transition"
                             :class="
                                 activeTab === 'base'
-                                    ? 'border-t border-x border-border/80 bg-card font-semibold text-foreground shadow-2xs'
+                                    ? 'border-x border-t border-border/80 bg-card font-semibold text-foreground shadow-2xs'
                                     : 'text-muted-foreground hover:text-foreground'
                             "
                         >
@@ -823,10 +823,10 @@ const handleDispatch = async (publishImmediate = false) => {
                         <button
                             type="button"
                             @click="activeTab = 'twitter'"
-                            class="relative flex cursor-pointer items-center gap-1.5 rounded-t-md px-3 py-1.5 font-medium transition shrink-0"
+                            class="relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-t-md px-3 py-1.5 font-medium transition"
                             :class="
                                 activeTab === 'twitter'
-                                    ? 'border-t border-x border-border/80 bg-card font-semibold text-foreground shadow-2xs'
+                                    ? 'border-x border-t border-border/80 bg-card font-semibold text-foreground shadow-2xs'
                                     : 'text-muted-foreground hover:text-foreground'
                             "
                         >
@@ -836,7 +836,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                 class="rounded px-1.5 py-0.5 font-mono text-[10px] transition"
                                 :class="
                                     isTwitterOver
-                                        ? 'bg-destructive/15 text-destructive font-bold ring-1 ring-destructive/40'
+                                        ? 'bg-destructive/15 font-bold text-destructive ring-1 ring-destructive/40'
                                         : 'bg-muted/70 text-muted-foreground'
                                 "
                             >
@@ -844,7 +844,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             </span>
                             <span
                                 v-else
-                                class="rounded bg-muted/50 px-1 py-0.2 font-sans text-[9px] text-muted-foreground/60 italic"
+                                class="py-0.2 rounded bg-muted/50 px-1 font-sans text-[9px] text-muted-foreground/60 italic"
                             >
                                 Off
                             </span>
@@ -857,10 +857,10 @@ const handleDispatch = async (publishImmediate = false) => {
                         <button
                             type="button"
                             @click="activeTab = 'linkedin'"
-                            class="relative flex cursor-pointer items-center gap-1.5 rounded-t-md px-3 py-1.5 font-medium transition shrink-0"
+                            class="relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-t-md px-3 py-1.5 font-medium transition"
                             :class="
                                 activeTab === 'linkedin'
-                                    ? 'border-t border-x border-border/80 bg-card font-semibold text-foreground shadow-2xs'
+                                    ? 'border-x border-t border-border/80 bg-card font-semibold text-foreground shadow-2xs'
                                     : 'text-muted-foreground hover:text-foreground'
                             "
                         >
@@ -870,7 +870,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                 class="rounded px-1.5 py-0.5 font-mono text-[10px] transition"
                                 :class="
                                     isLinkedInOver
-                                        ? 'bg-destructive/15 text-destructive font-bold ring-1 ring-destructive/40'
+                                        ? 'bg-destructive/15 font-bold text-destructive ring-1 ring-destructive/40'
                                         : 'bg-muted/70 text-muted-foreground'
                                 "
                             >
@@ -878,7 +878,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             </span>
                             <span
                                 v-else
-                                class="rounded bg-muted/50 px-1 py-0.2 font-sans text-[9px] text-muted-foreground/60 italic"
+                                class="py-0.2 rounded bg-muted/50 px-1 font-sans text-[9px] text-muted-foreground/60 italic"
                             >
                                 Off
                             </span>
@@ -891,10 +891,10 @@ const handleDispatch = async (publishImmediate = false) => {
                         <button
                             type="button"
                             @click="activeTab = 'facebook'"
-                            class="relative flex cursor-pointer items-center gap-1.5 rounded-t-md px-3 py-1.5 font-medium transition shrink-0"
+                            class="relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-t-md px-3 py-1.5 font-medium transition"
                             :class="
                                 activeTab === 'facebook'
-                                    ? 'border-t border-x border-border/80 bg-card font-semibold text-foreground shadow-2xs'
+                                    ? 'border-x border-t border-border/80 bg-card font-semibold text-foreground shadow-2xs'
                                     : 'text-muted-foreground hover:text-foreground'
                             "
                         >
@@ -904,7 +904,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                 class="rounded px-1.5 py-0.5 font-mono text-[10px] transition"
                                 :class="
                                     isFacebookOver
-                                        ? 'bg-destructive/15 text-destructive font-bold ring-1 ring-destructive/40'
+                                        ? 'bg-destructive/15 font-bold text-destructive ring-1 ring-destructive/40'
                                         : 'bg-muted/70 text-muted-foreground'
                                 "
                             >
@@ -912,7 +912,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             </span>
                             <span
                                 v-else
-                                class="rounded bg-muted/50 px-1 py-0.2 font-sans text-[9px] text-muted-foreground/60 italic"
+                                class="py-0.2 rounded bg-muted/50 px-1 font-sans text-[9px] text-muted-foreground/60 italic"
                             >
                                 Off
                             </span>
@@ -971,7 +971,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             </div>
 
                             <div
-                                class="flex items-center justify-between pb-1.5 border-b border-border/50 text-xs"
+                                class="flex items-center justify-between border-b border-border/50 pb-1.5 text-xs"
                             >
                                 <label
                                     class="flex cursor-pointer items-center gap-2 font-medium text-foreground"
@@ -998,7 +998,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         v-if="hasTwitterOverride"
                                         type="button"
                                         @click="resetToUniversal('twitter')"
-                                        class="text-[11px] text-muted-foreground hover:text-destructive cursor-pointer underline"
+                                        class="cursor-pointer text-[11px] text-muted-foreground underline hover:text-destructive"
                                     >
                                         Reset to Universal
                                     </button>
@@ -1006,7 +1006,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         v-if="hasTwitterOverride && content"
                                         type="button"
                                         @click="copyFromUniversal('twitter')"
-                                        class="text-[11px] text-primary hover:underline cursor-pointer"
+                                        class="cursor-pointer text-[11px] text-primary hover:underline"
                                     >
                                         Copy Universal Text
                                     </button>
@@ -1023,7 +1023,7 @@ const handleDispatch = async (publishImmediate = false) => {
 
                             <div
                                 v-else
-                                class="rounded-xl border border-dashed border-border/80 bg-muted/20 p-4 text-center space-y-2.5"
+                                class="space-y-2.5 rounded-xl border border-dashed border-border/80 bg-muted/20 p-4 text-center"
                             >
                                 <p class="text-xs text-muted-foreground">
                                     Currently mirroring the
@@ -1037,7 +1037,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     class="rounded-lg border border-border/50 bg-card/70 p-3 text-left"
                                 >
                                     <p
-                                        class="line-clamp-3 text-xs leading-relaxed text-foreground whitespace-pre-wrap"
+                                        class="line-clamp-3 text-xs leading-relaxed whitespace-pre-wrap text-foreground"
                                     >
                                         {{ content }}
                                     </p>
@@ -1045,7 +1045,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                 <button
                                     type="button"
                                     @click="copyFromUniversal('twitter')"
-                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted transition"
+                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs transition hover:bg-muted"
                                 >
                                     <span
                                         >Customize specifically for X /
@@ -1082,7 +1082,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             </div>
 
                             <div
-                                class="flex items-center justify-between pb-1.5 border-b border-border/50 text-xs"
+                                class="flex items-center justify-between border-b border-border/50 pb-1.5 text-xs"
                             >
                                 <label
                                     class="flex cursor-pointer items-center gap-2 font-medium text-foreground"
@@ -1109,7 +1109,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         v-if="hasLinkedInOverride"
                                         type="button"
                                         @click="resetToUniversal('linkedin')"
-                                        class="text-[11px] text-muted-foreground hover:text-destructive cursor-pointer underline"
+                                        class="cursor-pointer text-[11px] text-muted-foreground underline hover:text-destructive"
                                     >
                                         Reset to Universal
                                     </button>
@@ -1117,7 +1117,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         v-if="hasLinkedInOverride && content"
                                         type="button"
                                         @click="copyFromUniversal('linkedin')"
-                                        class="text-[11px] text-primary hover:underline cursor-pointer"
+                                        class="cursor-pointer text-[11px] text-primary hover:underline"
                                     >
                                         Copy Universal Text
                                     </button>
@@ -1134,7 +1134,7 @@ const handleDispatch = async (publishImmediate = false) => {
 
                             <div
                                 v-else
-                                class="rounded-xl border border-dashed border-border/80 bg-muted/20 p-4 text-center space-y-2.5"
+                                class="space-y-2.5 rounded-xl border border-dashed border-border/80 bg-muted/20 p-4 text-center"
                             >
                                 <p class="text-xs text-muted-foreground">
                                     Currently mirroring the
@@ -1148,7 +1148,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     class="rounded-lg border border-border/50 bg-card/70 p-3 text-left"
                                 >
                                     <p
-                                        class="line-clamp-3 text-xs leading-relaxed text-foreground whitespace-pre-wrap"
+                                        class="line-clamp-3 text-xs leading-relaxed whitespace-pre-wrap text-foreground"
                                     >
                                         {{ content }}
                                     </p>
@@ -1156,7 +1156,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                 <button
                                     type="button"
                                     @click="copyFromUniversal('linkedin')"
-                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted transition"
+                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs transition hover:bg-muted"
                                 >
                                     <span
                                         >Customize specifically for
@@ -1193,7 +1193,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             </div>
 
                             <div
-                                class="flex items-center justify-between pb-1.5 border-b border-border/50 text-xs"
+                                class="flex items-center justify-between border-b border-border/50 pb-1.5 text-xs"
                             >
                                 <label
                                     class="flex cursor-pointer items-center gap-2 font-medium text-foreground"
@@ -1220,7 +1220,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         v-if="hasFacebookOverride"
                                         type="button"
                                         @click="resetToUniversal('facebook')"
-                                        class="text-[11px] text-muted-foreground hover:text-destructive cursor-pointer underline"
+                                        class="cursor-pointer text-[11px] text-muted-foreground underline hover:text-destructive"
                                     >
                                         Reset to Universal
                                     </button>
@@ -1228,7 +1228,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         v-if="hasFacebookOverride && content"
                                         type="button"
                                         @click="copyFromUniversal('facebook')"
-                                        class="text-[11px] text-primary hover:underline cursor-pointer"
+                                        class="cursor-pointer text-[11px] text-primary hover:underline"
                                     >
                                         Copy Universal Text
                                     </button>
@@ -1245,7 +1245,7 @@ const handleDispatch = async (publishImmediate = false) => {
 
                             <div
                                 v-else
-                                class="rounded-xl border border-dashed border-border/80 bg-muted/20 p-4 text-center space-y-2.5"
+                                class="space-y-2.5 rounded-xl border border-dashed border-border/80 bg-muted/20 p-4 text-center"
                             >
                                 <p class="text-xs text-muted-foreground">
                                     Currently mirroring the
@@ -1259,7 +1259,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     class="rounded-lg border border-border/50 bg-card/70 p-3 text-left"
                                 >
                                     <p
-                                        class="line-clamp-3 text-xs leading-relaxed text-foreground whitespace-pre-wrap"
+                                        class="line-clamp-3 text-xs leading-relaxed whitespace-pre-wrap text-foreground"
                                     >
                                         {{ content }}
                                     </p>
@@ -1267,7 +1267,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                 <button
                                     type="button"
                                     @click="copyFromUniversal('facebook')"
-                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted transition"
+                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs transition hover:bg-muted"
                                 >
                                     <span
                                         >Customize specifically for
@@ -1332,7 +1332,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                 <span
                                     class="font-mono text-[10px] text-muted-foreground uppercase"
                                 >
-                                    {{ linkMetadata.domain || "example.com" }}
+                                    {{ linkMetadata.domain || 'example.com' }}
                                 </span>
                                 <h4
                                     class="mt-0.5 line-clamp-1 text-xs font-bold text-foreground"
@@ -1368,8 +1368,8 @@ const handleDispatch = async (publishImmediate = false) => {
                             >
                                 {{
                                     isFetchingLink
-                                        ? "Detecting..."
-                                        : "Attach Card"
+                                        ? 'Detecting...'
+                                        : 'Attach Card'
                                 }}
                             </button>
                         </div>
@@ -1389,7 +1389,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     class="text-xs font-semibold text-foreground"
                                     >Schedule Publication ({{
                                         workspaceStore.currentOrg?.timezone ||
-                                        "UTC"
+                                        'UTC'
                                     }}):</span
                                 >
                             </div>
@@ -1436,7 +1436,7 @@ const handleDispatch = async (publishImmediate = false) => {
                         class="flex items-center justify-between gap-3 border-t border-border/70 bg-card px-4 py-3"
                     >
                         <!-- Left Media & Tool Attachments -->
-                        <div class="flex items-center gap-1.5 shrink-0">
+                        <div class="flex shrink-0 items-center gap-1.5">
                             <input
                                 type="file"
                                 id="media-upload-native"
@@ -1485,7 +1485,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             >
                                 <Calendar class="size-3.5" />
                                 <span>{{
-                                    isScheduled ? "Scheduled" : "Schedule"
+                                    isScheduled ? 'Scheduled' : 'Schedule'
                                 }}</span>
                             </button>
                         </div>
@@ -1499,7 +1499,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                 selectedAccountIds.length === 0 ||
                                 (!content && !mediaUrl)
                             "
-                            class="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-50 shrink-0"
+                            class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:opacity-50"
                         >
                             <span
                                 v-if="isSubmitting"
@@ -1509,19 +1509,19 @@ const handleDispatch = async (publishImmediate = false) => {
                             <span>{{
                                 isScheduled
                                     ? isTwitterOnly
-                                        ? "Schedule Tweet"
+                                        ? 'Schedule Tweet'
                                         : isLinkedInOnly
-                                          ? "Schedule to LinkedIn"
+                                          ? 'Schedule to LinkedIn'
                                           : isFacebookOnly
-                                            ? "Schedule to Facebook"
-                                            : "Schedule Post"
+                                            ? 'Schedule to Facebook'
+                                            : 'Schedule Post'
                                     : isTwitterOnly
-                                      ? "Post Tweet"
+                                      ? 'Post Tweet'
                                       : isLinkedInOnly
-                                        ? "Post to LinkedIn"
+                                        ? 'Post to LinkedIn'
                                         : isFacebookOnly
-                                          ? "Post to Facebook"
-                                          : "Publish Now"
+                                          ? 'Post to Facebook'
+                                          : 'Publish Now'
                             }}</span>
                         </button>
                     </div>
@@ -1557,7 +1557,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     selectedAccountIds.length ===
                                         healthyAccounts.length &&
                                     healthyAccounts.length > 0
-                                        ? 'bg-primary text-primary-foreground font-semibold shadow-2xs'
+                                        ? 'bg-primary font-semibold text-primary-foreground shadow-2xs'
                                         : 'border border-border bg-background text-foreground hover:bg-muted'
                                 "
                             >
@@ -1569,12 +1569,12 @@ const handleDispatch = async (publishImmediate = false) => {
                                 class="flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition"
                                 :class="
                                     isTwitterOnly
-                                        ? 'bg-primary text-primary-foreground font-semibold shadow-2xs'
+                                        ? 'bg-primary font-semibold text-primary-foreground shadow-2xs'
                                         : 'border border-border bg-background text-foreground hover:bg-muted'
                                 "
                                 title="Target X / Twitter accounts only"
                             >
-                                <span class="font-bold text-[10px]">𝕏</span>
+                                <span class="text-[10px] font-bold">𝕏</span>
                                 <span>Twitter only</span>
                             </button>
                             <button
@@ -1583,13 +1583,13 @@ const handleDispatch = async (publishImmediate = false) => {
                                 class="flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition"
                                 :class="
                                     isLinkedInOnly
-                                        ? 'bg-primary text-primary-foreground font-semibold shadow-2xs'
+                                        ? 'bg-primary font-semibold text-primary-foreground shadow-2xs'
                                         : 'border border-border bg-background text-foreground hover:bg-muted'
                                 "
                                 title="Target LinkedIn accounts only"
                             >
                                 <span
-                                    class="font-bold text-[10px] text-[#0077b5]"
+                                    class="text-[10px] font-bold text-[#0077b5]"
                                     >in</span
                                 >
                                 <span>LinkedIn only</span>
@@ -1600,13 +1600,13 @@ const handleDispatch = async (publishImmediate = false) => {
                                 class="flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition"
                                 :class="
                                     isFacebookOnly
-                                        ? 'bg-primary text-primary-foreground font-semibold shadow-2xs'
+                                        ? 'bg-primary font-semibold text-primary-foreground shadow-2xs'
                                         : 'border border-border bg-background text-foreground hover:bg-muted'
                                 "
                                 title="Target Facebook accounts only"
                             >
                                 <span
-                                    class="font-bold text-[10px] text-[#1877f2]"
+                                    class="text-[10px] font-bold text-[#1877f2]"
                                     >f</span
                                 >
                                 <span>Facebook only</span>
@@ -1635,7 +1635,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     No Access:
                                     {{ revokedAccountAlert.name }} ({{
                                         revokedAccountAlert.handle ||
-                                        "@channel"
+                                        '@channel'
                                     }})
                                 </p>
                                 <p class="mt-0.5 text-[11px] opacity-90">
@@ -1704,11 +1704,11 @@ const handleDispatch = async (publishImmediate = false) => {
                                         ]"
                                     >
                                         {{
-                                            acc.provider === "twitter"
-                                                ? "𝕏"
-                                                : acc.provider === "linkedin"
-                                                  ? "in"
-                                                  : "f"
+                                            acc.provider === 'twitter'
+                                                ? '𝕏'
+                                                : acc.provider === 'linkedin'
+                                                  ? 'in'
+                                                  : 'f'
                                         }}
                                     </span>
                                 </div>
@@ -1726,10 +1726,10 @@ const handleDispatch = async (publishImmediate = false) => {
                                     >
                                         {{
                                             acc.handle ||
-                                            "@" +
+                                            '@' +
                                                 acc.name
                                                     .toLowerCase()
-                                                    .replace(/\s+/g, "")
+                                                    .replace(/\s+/g, '')
                                         }}
                                     </p>
                                 </div>
@@ -1901,7 +1901,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                                 activeTwitterAccount?.name ||
                                                 workspaceStore.currentOrg
                                                     ?.name ||
-                                                "Acme Studio"
+                                                'Acme Studio'
                                             }}
                                         </span>
                                         <span
@@ -1909,12 +1909,12 @@ const handleDispatch = async (publishImmediate = false) => {
                                         >
                                             {{
                                                 activeTwitterAccount?.handle ||
-                                                "@" +
+                                                '@' +
                                                     (
                                                         workspaceStore
                                                             .currentOrg?.slug ||
-                                                        "acmestudio"
-                                                    ).replace(/-/g, "")
+                                                        'acmestudio'
+                                                    ).replace(/-/g, '')
                                             }}
                                         </span>
                                         <span
@@ -1927,7 +1927,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                     >
                                         {{
                                             resolvedTwitterText ||
-                                            "Your tweet text will appear here..."
+                                            'Your tweet text will appear here...'
                                         }}
                                     </p>
                                 </div>
@@ -1960,7 +1960,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         class="font-mono text-[11px] text-muted-foreground uppercase"
                                     >
                                         {{
-                                            linkMetadata.domain || "example.com"
+                                            linkMetadata.domain || 'example.com'
                                         }}
                                     </p>
                                     <p
@@ -2025,7 +2025,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         {{
                                             activeLinkedInAccount?.name ||
                                             workspaceStore.currentOrg?.name ||
-                                            "Acme Corp"
+                                            'Acme Corp'
                                         }}
                                     </h4>
                                     <p
@@ -2041,7 +2041,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             >
                                 {{
                                     resolvedLinkedInText ||
-                                    "Your LinkedIn post text will appear here..."
+                                    'Your LinkedIn post text will appear here...'
                                 }}
                             </p>
 
@@ -2074,7 +2074,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         class="font-mono text-[10px] text-muted-foreground uppercase"
                                     >
                                         {{
-                                            linkMetadata.domain || "example.com"
+                                            linkMetadata.domain || 'example.com'
                                         }}
                                     </p>
                                     <p
@@ -2130,7 +2130,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         {{
                                             activeFacebookAccount?.name ||
                                             workspaceStore.currentOrg?.name ||
-                                            "Acme Official"
+                                            'Acme Official'
                                         }}
                                     </h4>
                                     <p
@@ -2146,7 +2146,7 @@ const handleDispatch = async (publishImmediate = false) => {
                             >
                                 {{
                                     resolvedFacebookText ||
-                                    "Your Facebook post text will appear here..."
+                                    'Your Facebook post text will appear here...'
                                 }}
                             </p>
 
@@ -2179,7 +2179,7 @@ const handleDispatch = async (publishImmediate = false) => {
                                         class="font-mono text-[10px] text-muted-foreground uppercase"
                                     >
                                         {{
-                                            linkMetadata.domain || "example.com"
+                                            linkMetadata.domain || 'example.com'
                                         }}
                                     </p>
                                     <p

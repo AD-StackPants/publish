@@ -34,10 +34,7 @@ apiClient.interceptors.request.use((config) => {
 // Mount the mock adapter only in demo mode AND in a browser context.
 // The typeof guard prevents the SSR (Node.js) evaluator from ever touching
 // localStorage or axios-mock-adapter, which would throw ReferenceError.
-if (
-    import.meta.env.VITE_APP_ENV === 'demo' &&
-    typeof window !== 'undefined'
-) {
+if (import.meta.env.VITE_APP_ENV === 'demo' && typeof window !== 'undefined') {
     const { setupMockAdapter } = await import('../mocks/mockAdapter');
     setupMockAdapter(apiClient);
 }

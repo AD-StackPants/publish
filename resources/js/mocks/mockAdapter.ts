@@ -100,10 +100,16 @@ export function setupMockAdapter(axiosInstance: AxiosInstance): void {
 
             // Normalize path to always resolve the /api/v1 prefix
             let fullPath = rawUrl;
-            if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+            if (
+                !rawUrl.startsWith('http://') &&
+                !rawUrl.startsWith('https://')
+            ) {
                 const cleanBase = baseURL.replace(/\/+$/, '');
                 const cleanUrl = rawUrl.replace(/^\/+/, '');
-                if (cleanBase && !cleanUrl.startsWith(cleanBase.replace(/^\/+/, ''))) {
+                if (
+                    cleanBase &&
+                    !cleanUrl.startsWith(cleanBase.replace(/^\/+/, ''))
+                ) {
                     fullPath = `${cleanBase}/${cleanUrl}`;
                 } else if (!cleanUrl.startsWith('api/v1')) {
                     fullPath = `/api/v1/${cleanUrl}`;
@@ -123,12 +129,14 @@ export function setupMockAdapter(axiosInstance: AxiosInstance): void {
                 DEFAULT_ORG.id;
             const parsedUrl = new URL(fullPath, 'http://localhost');
             const pathname = parsedUrl.pathname;
-            
+
             // Extract search params from URL and config.params
             const searchParams = new URLSearchParams(parsedUrl.search);
             if (config.params) {
                 if (config.params instanceof URLSearchParams) {
-                    config.params.forEach((val, key) => searchParams.set(key, val));
+                    config.params.forEach((val, key) =>
+                        searchParams.set(key, val),
+                    );
                 } else if (typeof config.params === 'object') {
                     Object.entries(config.params).forEach(([key, val]) => {
                         if (val !== undefined && val !== null) {

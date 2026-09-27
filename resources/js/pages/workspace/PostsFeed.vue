@@ -84,7 +84,9 @@ const posts = computed(() => {
                 (p) => p.status === 'partial_failure' || p.status === 'dlq',
             );
         } else {
-            result = result.filter((p) => p.status === activeStatusFilter.value);
+            result = result.filter(
+                (p) => p.status === activeStatusFilter.value,
+            );
         }
     }
 
@@ -979,7 +981,9 @@ const getPostsForDay = (dayIsoDate: string) => {
                     :key="day.fullDate"
                     class="flex flex-col space-y-2 p-2 transition-colors"
                     :class="
-                        day.isToday ? 'bg-primary/5 dark:bg-primary/5' : 'bg-card'
+                        day.isToday
+                            ? 'bg-primary/5 dark:bg-primary/5'
+                            : 'bg-card'
                     "
                 >
                     <div
@@ -1003,9 +1007,7 @@ const getPostsForDay = (dayIsoDate: string) => {
                         <p
                             class="font-mono text-xs font-bold"
                             :class="
-                                day.isToday
-                                    ? 'text-primary'
-                                    : 'text-foreground'
+                                day.isToday ? 'text-primary' : 'text-foreground'
                             "
                         >
                             {{ day.date }}
@@ -1037,7 +1039,8 @@ const getPostsForDay = (dayIsoDate: string) => {
                                 <span class="font-mono">
                                     {{
                                         formatPostTime(
-                                            post.scheduled_at || post.created_at,
+                                            post.scheduled_at ||
+                                                post.created_at,
                                         )
                                     }}
                                 </span>
@@ -1068,7 +1071,7 @@ const getPostsForDay = (dayIsoDate: string) => {
                     <div
                         v-for="name in monthHeaderNames"
                         :key="name"
-                        class="py-2 uppercase tracking-wider"
+                        class="py-2 tracking-wider uppercase"
                     >
                         {{ name }}
                     </div>
@@ -1113,7 +1116,9 @@ const getPostsForDay = (dayIsoDate: string) => {
                         <!-- Posts for this Day -->
                         <div class="space-y-1">
                             <div
-                                v-for="post in getPostsForDay(cell.fullDate).slice(0, 2)"
+                                v-for="post in getPostsForDay(
+                                    cell.fullDate,
+                                ).slice(0, 2)"
                                 :key="post.id"
                                 @click="openInspection(post)"
                                 class="flex cursor-pointer items-center gap-1 rounded border border-border/70 bg-background/90 px-1.5 py-0.5 text-[10px] shadow-2xs transition hover:border-primary/60 hover:bg-muted"
@@ -1147,7 +1152,7 @@ const getPostsForDay = (dayIsoDate: string) => {
                                         getPostsForDay(cell.fullDate)[2],
                                     )
                                 "
-                                class="w-full text-left text-[9px] font-semibold text-primary hover:underline px-0.5"
+                                class="w-full px-0.5 text-left text-[9px] font-semibold text-primary hover:underline"
                             >
                                 +{{ getPostsForDay(cell.fullDate).length - 2 }}
                                 more

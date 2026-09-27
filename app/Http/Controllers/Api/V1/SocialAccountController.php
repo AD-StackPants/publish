@@ -37,7 +37,7 @@ final class SocialAccountController extends Controller
      */
     public function store(ConnectSocialAccountRequest $request): JsonResponse
     {
-        $tenantId  = (string) $request->attributes->get('tenant_id');
+        $tenantId = (string) $request->attributes->get('tenant_id');
         $validated = $request->validated();
 
         $account = $this->accountService->connectAccount($tenantId, $validated);
@@ -66,7 +66,7 @@ final class SocialAccountController extends Controller
     public function reconnect(Request $request, string $id): JsonResponse
     {
         $tenantId = (string) $request->attributes->get('tenant_id');
-        $account  = $this->accountService->reconnectAccount($tenantId, $id);
+        $account = $this->accountService->reconnectAccount($tenantId, $id);
 
         return response()->json($account);
     }

@@ -19,10 +19,10 @@ final class ConnectSocialAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'provider'     => ['required', 'string', 'in:linkedin,facebook,twitter'],
-            'name'         => ['sometimes', 'string', 'max:255'],
-            'account_id'   => ['nullable', 'string', 'max:255'],
-            'avatar_url'   => ['nullable', 'url', 'max:2048'],
+            'provider' => ['required', 'string', 'in:linkedin,facebook,twitter'],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'account_id' => ['nullable', 'string', 'max:255'],
+            'avatar_url' => ['nullable', 'url', 'max:2048'],
             'access_token' => ['nullable', 'string'],
         ];
     }

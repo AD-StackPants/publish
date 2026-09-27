@@ -106,7 +106,6 @@ const handleSaveProfile = async () => {
         isSaving.value = false;
     }
 };
-
 </script>
 
 <template>
@@ -433,6 +432,5 @@ const handleSaveProfile = async () => {
                 </div>
             </div>
         </div>
-
     </div>
 </template>

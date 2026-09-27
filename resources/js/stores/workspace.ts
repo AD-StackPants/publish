@@ -43,7 +43,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const fetchOrganizations = async () => {
         isLoading.value = true;
         try {
-            const res = await apiClient.get<Organization[]>('/user/organizations');
+            const res = await apiClient.get<Organization[]>(
+                '/user/organizations',
+            );
             organizations.value = res.data;
 
             // Sync currentOrg to the freshly fetched version if we have one cached
@@ -85,7 +87,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const match = organizations.value.find((o) => o.slug === slug);
         if (match) {
             currentOrg.value = match;
-            localStorage.setItem('workspace_current_org', JSON.stringify(match));
+            localStorage.setItem(
+                'workspace_current_org',
+                JSON.stringify(match),
+            );
             await fetchAccounts();
             return true;
         }
@@ -120,7 +125,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         );
         currentOrg.value = res.data;
         localStorage.setItem('workspace_current_org', JSON.stringify(res.data));
-        const index = organizations.value.findIndex((o) => o.id === res.data.id);
+        const index = organizations.value.findIndex(
+            (o) => o.id === res.data.id,
+        );
         if (index !== -1) {
             organizations.value[index] = res.data;
         }

@@ -27,7 +27,6 @@ const page = usePage();
 const billingStore = useBillingStore();
 const workspaceStore = useWorkspaceStore();
 
-
 const accountsCount = computed(() => workspaceStore.accounts.length);
 const totalLimit = computed(() => billingStore.totalChannelLimit);
 const usagePercentage = computed(() => {
@@ -51,7 +50,7 @@ const totalMonthlyRate = computed(() => {
     return ((baseCents + addonsCents) / 100).toFixed(2);
 });
 
-const formatDate = (isoString?: string) => {
+const formatDate = (isoString?: string | null) => {
     if (!isoString) return 'Oct 15, 2026';
     try {
         return new Date(isoString).toLocaleDateString('en-US', {

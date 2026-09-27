@@ -21,7 +21,9 @@ export const useBillingStore = defineStore('billing', () => {
 
     // Active subscription state
     const currentPlan = ref<Plan | null>(null);
-    const status = ref<'active' | 'past_due' | 'canceled' | 'trialing' | null>(null);
+    const status = ref<'active' | 'past_due' | 'canceled' | 'trialing' | null>(
+        null,
+    );
     const periodStart = ref<string | null>(null);
     const periodEnd = ref<string | null>(null);
     const cancelAtPeriodEnd = ref<boolean>(false);
