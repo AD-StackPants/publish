@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\Organization;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 // Posexei Multi-Tenant SaaS Landing Page
@@ -9,7 +11,7 @@ Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
-Route::prefix('w/{tenant_slug}')->group(function () {
+Route::middleware(['auth', 'verified'])->prefix('w/{tenant_slug}')->group(function () {
     Route::get('/', function (string $tenant_slug) {
         return redirect("/w/{$tenant_slug}/posts");
     });
@@ -46,7 +48,39 @@ Route::prefix('w/{tenant_slug}')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    // !FIXME: move logic to controller
+    Route::get('dashboard', function (Request $request) {
+        /** @var Organization|null $organization */
+        $organization = null;
+
+        $preferredSlug = $request->cookie('active_tenant_slug');
+        if (is_string($preferredSlug) && ! empty($preferredSlug)) {
+            $organization = Organization::query()->where('slug', $preferredSlug)->first();
+        }
+
+        if (! $organization) {
+            $organization = Organization::query()->first();
+        }
+
+        if (! $organization) {
+            $user = $request->user();
+            $baseSlug = $user ? Str::slug($user->name) : 'workspace';
+            $slug = ! empty($baseSlug) ? $baseSlug : 'workspace';
+
+            $organization = Organization::query()->create([
+                'name' => ($user ? $user->name : 'My').' Workspace',
+                'slug' => $slug,
+                'timezone' => 'UTC',
+            ]);
+        }
+
+        $redirectPath = $request->query('redirect', '/posts');
+        if (! is_string($redirectPath) || ! str_starts_with($redirectPath, '/')) {
+            $redirectPath = '/posts';
+        }
+
+        return redirect("/w/{$organization->slug}{$redirectPath}");
+    })->name('dashboard');
 });
 
 require __DIR__.'/settings.php';

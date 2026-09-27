@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Organization;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,12 +36,21 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $tenantSlug = $request->route('tenant_slug');
+        if (! $tenantSlug && $request->user()) {
+            $preferredSlug = $request->cookie('active_tenant_slug');
+            $tenantSlug = is_string($preferredSlug) && ! empty($preferredSlug)
+                ? $preferredSlug
+                : Organization::query()->value('slug');
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
             ],
+            'tenant_slug' => $tenantSlug,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
