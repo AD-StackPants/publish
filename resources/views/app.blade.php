@@ -40,6 +40,12 @@
         <x-inertia::head>
             <title>{{ config('app.name', 'Laravel') }}</title>
         </x-inertia::head>
+
+        <style>
+            .bug {
+                border: 1px solid red !important;
+            }
+        </style>
     </head>
     <body class="font-sans antialiased">
         <x-inertia::app />

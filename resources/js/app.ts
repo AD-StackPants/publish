@@ -1,11 +1,14 @@
+import { createPinia } from 'pinia';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import WorkspaceLayout from '@/layouts/WorkspaceLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const pinia = createPinia();
+const appName = import.meta.env.VITE_APP_NAME || 'SocialSync';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -17,11 +20,14 @@ void createInertiaApp({
                 return AuthLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
+            case name.startsWith('workspace/'):
+                return WorkspaceLayout;
             default:
                 return AppLayout;
         }
     },
     withApp: (app) => {
+        app.use(pinia);
         app.directive('focus', {
             mounted: (el: HTMLElement, shouldFocus) => {
                 if (shouldFocus.value !== false) {
@@ -35,8 +41,8 @@ void createInertiaApp({
     },
 });
 
-// This will set light / dark mode on page load...
+// Set light / dark mode on page load
 initializeTheme();
 
-// This will listen for flash toast data from the server...
+// Listen for flash toast data from the server
 initializeFlashToast();
