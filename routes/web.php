@@ -4,8 +4,10 @@ use Illuminate\Support\Facades\Route;
 
 use Inertia\Inertia;
 
-// Multi-Tenant SaaS Workspace Application
-Route::redirect('/', '/w/acme-studio/posts')->name('home');
+// Posexei Multi-Tenant SaaS Landing Page
+Route::get('/', function () {
+    return Inertia::render('Welcome');
+})->name('home');
 
 Route::prefix('w/{tenant_slug}')->group(function () {
     Route::get('/', function (string $tenant_slug) {
