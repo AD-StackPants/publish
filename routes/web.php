@@ -35,9 +35,62 @@ Route::middleware(['auth', 'verified', EnsureTenantAccess::class])->prefix('w/{t
         ]);
     })->name('workspace.channels');
 
-    Route::get('/settings', function (string $tenant_slug) {
+    Route::get('/settings', function (Request $request, string $tenant_slug) {
+        /** @var Organization $organization */
+        $organization = $request->attributes->get('tenant') ?? Organization::query()->where('slug', $tenant_slug)->firstOrFail();
+        $user = $request->user();
+
+        $canManageTwoFactor = class_exists(\Laravel\Fortify\Features::class) && \Laravel\Fortify\Features::canManageTwoFactorAuthentication();
+        $canManagePasskeys = class_exists(\Laravel\Fortify\Features::class) && \Laravel\Fortify\Features::canManagePasskeys();
+
+        $passkeys = [];
+        if ($canManagePasskeys && $user && method_exists($user, 'passkeys')) {
+            $passkeys = $user->passkeys()
+                ->select(['id', 'name', 'credential', 'created_at', 'last_used_at'])
+                ->latest()
+                ->get()
+                ->map(fn ($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'authenticator' => $p->authenticator,
+                    'created_at_diff' => $p->created_at?->diffForHumans() ?? '',
+                    'last_used_at_diff' => $p->last_used_at?->diffForHumans(),
+                ])
+                ->values()
+                ->all();
+        }
+
+        $twoFactorEnabled = false;
+        $requiresConfirmation = false;
+        if ($canManageTwoFactor && $user && method_exists($user, 'hasEnabledTwoFactorAuthentication')) {
+            $twoFactorEnabled = (bool) $user->hasEnabledTwoFactorAuthentication();
+            $requiresConfirmation = \Laravel\Fortify\Features::optionEnabled(\Laravel\Fortify\Features::twoFactorAuthentication(), 'confirm');
+        }
+
+        $members = $organization->users()
+            ->select(['id', 'name', 'email', 'is_superadmin', 'created_at'])
+            ->get()
+            ->map(fn ($u) => [
+                'id' => (string) $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role' => $u->isSuperAdmin() ? 'Owner' : 'Member',
+                'created_at' => $u->created_at?->format('M d, Y') ?? 'Recently',
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('workspace/Settings', [
             'tenant_slug' => $tenant_slug,
+            'mustVerifyEmail' => $user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail,
+            'status' => session('status'),
+            'canManageTwoFactor' => $canManageTwoFactor,
+            'canManagePasskeys' => $canManagePasskeys,
+            'passkeys' => $passkeys,
+            'twoFactorEnabled' => $twoFactorEnabled,
+            'requiresConfirmation' => $requiresConfirmation,
+            'passwordRules' => \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString(),
+            'members' => $members,
         ]);
     })->name('workspace.settings');
 

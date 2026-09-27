@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -9,6 +10,10 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
+import { ArrowLeft, Building2 } from '@lucide/vue';
+
+const page = usePage();
+const tenantSlug = computed(() => page.props.tenant_slug as string | undefined);
 
 const sidebarNavItems: NavItem[] = [
     {
@@ -56,6 +61,22 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                             {{ item.title }}
                         </Link>
                     </Button>
+
+                    <template v-if="tenantSlug">
+                        <Separator class="my-2" />
+                        <Button
+                            variant="outline"
+                            class="w-full justify-start border-dashed text-xs"
+                            as-child
+                        >
+                            <Link :href="`/w/${tenantSlug}/settings`">
+                                <Building2
+                                    class="mr-2 h-3.5 w-3.5 text-primary"
+                                />
+                                Workspace Settings
+                            </Link>
+                        </Button>
+                    </template>
                 </nav>
             </aside>
 
