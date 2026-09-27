@@ -9,6 +9,7 @@ use App\Models\SocialAccount;
 use App\Services\Channels\SocialChannelManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 final class PostPublishingService
@@ -81,7 +82,15 @@ final class PostPublishingService
 
         // 2. Ingestion
         $isScheduled = ! empty($data['scheduled_at']);
+        if ($isScheduled) {
+            $scheduledCarbon = Carbon::parse((string) $data['scheduled_at']);
+            if ($scheduledCarbon->lte(now())) {
+                // Past-Timestamp Race: Gracefully fall back to immediate dispatch instead of stranding
+                $isScheduled = false;
+            }
+        }
         $initialStatus = $isScheduled ? 'scheduled' : 'publishing';
+        $accountIds = array_values(array_unique((array) ($data['account_ids'] ?? [])));
 
         /** @var Post $post */
         $post = Post::query()->create([
@@ -91,24 +100,34 @@ final class PostPublishingService
             'media_url' => $data['media_url'] ?? null,
             'link_metadata' => $data['link_metadata'] ?? null,
             'status' => $initialStatus,
-            'scheduled_at' => $data['scheduled_at'] ?? null,
+            'scheduled_at' => $isScheduled ? $data['scheduled_at'] : null,
+            'target_account_ids' => $accountIds,
+            'delivery_results' => [],
             'idempotency_key' => $idempotencyKey,
         ]);
 
         // 3. Step Checkpoints: Step 1 (Credentials), Step 2 (Media Storage), Step 3 (API Dispatch)
-        $chk1 = $post->checkpoints()->create([
+        $post->checkpoints()->create([
             'step' => 'Credential Verification',
             'status' => 'completed',
             'error_message' => null,
         ]);
 
-        $chk2 = $post->checkpoints()->create([
+        $mediaError = null;
+        if ($isScheduled && ! empty($data['media_url'])) {
+            $urlStr = (string) $data['media_url'];
+            if (str_contains($urlStr, 'X-Amz-Expires') || str_contains($urlStr, 'Expires=')) {
+                $mediaError = 'Warning: Presigned media URL may expire before execution date.';
+            }
+        }
+
+        $post->checkpoints()->create([
             'step' => 'Media Storage Processing',
             'status' => 'completed',
-            'error_message' => null,
+            'error_message' => $mediaError,
         ]);
 
-        $chk3 = $post->checkpoints()->create([
+        $post->checkpoints()->create([
             'step' => 'Downstream API Dispatch',
             'status' => $isScheduled ? 'pending' : 'in_progress',
             'error_message' => null,
@@ -118,63 +137,7 @@ final class PostPublishingService
 
         // 4. If immediate dispatch, attempt publishing across accounts
         if (! $isScheduled) {
-            $accountIds = (array) ($data['account_ids'] ?? []);
-            $accounts = SocialAccount::query()
-                ->where('organization_id', $tenantId)
-                ->whereIn('id', $accountIds)
-                ->get();
-
-            $dispatchedCount = 0;
-            $failedCount = 0;
-            $errorMessage = null;
-
-            foreach ($accounts as $account) {
-                try {
-                    $channel = $this->channelManager->channel($account->provider);
-                    $overridesData = $post->platform_overrides;
-                    $overrides = is_array($overridesData)
-                        ? (array) ($overridesData[$account->provider] ?? [])
-                        : [];
-
-                    $result = $channel->publish(
-                        accountId: $account->account_id,
-                        content: $post->content,
-                        token: null,
-                        mediaUrl: $post->media_url,
-                        overrides: $overrides
-                    );
-
-                    if ($result->success) {
-                        $dispatchedCount++;
-                    } else {
-                        $failedCount++;
-                        $errorMessage = $result->errorMessage;
-                    }
-                } catch (\Throwable $e) {
-                    $failedCount++;
-                    $errorMessage = $e->getMessage();
-                }
-            }
-
-            if ($failedCount > 0 && $dispatchedCount === 0) {
-                $post->update(['status' => 'partial_failure']);
-                $chk3->update([
-                    'status' => 'failed',
-                    'error_message' => $errorMessage ?? 'Channel API dispatch failed',
-                ]);
-            } elseif ($failedCount > 0) {
-                $post->update(['status' => 'partial_failure']);
-                $chk3->update([
-                    'status' => 'failed',
-                    'error_message' => "Partial failure: {$failedCount} channel(s) failed. {$errorMessage}",
-                ]);
-            } else {
-                $post->update(['status' => 'published']);
-                $chk3->update([
-                    'status' => 'completed',
-                    'error_message' => null,
-                ]);
-            }
+            $this->dispatchPostToAccounts($post, $accountIds, false);
         }
 
         return [
@@ -182,6 +145,133 @@ final class PostPublishingService
             'post' => $post->load('checkpoints'),
             'idempotent_replay' => false,
         ];
+    }
+
+    /**
+     * @param  array<int, mixed>  $accountIds
+     */
+    public function dispatchPostToAccounts(Post $post, array $accountIds, bool $retryOnlyFailed = false): void
+    {
+        $accounts = SocialAccount::query()
+            ->where('organization_id', $post->organization_id)
+            ->whereIn('id', $accountIds)
+            ->get();
+
+        $deliveryResults = is_array($post->delivery_results) ? $post->delivery_results : [];
+        $dispatchedCount = 0;
+        $failedCount = 0;
+        $revokedCount = 0;
+        $errorMessage = null;
+
+        foreach ($accounts as $account) {
+            // If retrying, skip accounts that already succeeded
+            if ($retryOnlyFailed && isset($deliveryResults[$account->id])) {
+                $prevResult = $deliveryResults[$account->id];
+                if (is_array($prevResult) && ($prevResult['status'] ?? '') === 'published') {
+                    $dispatchedCount++;
+
+                    continue; // ISOLATED RETRY: Do NOT re-post to succeeded channel!
+                }
+            }
+
+            try {
+                $channel = $this->channelManager->channel($account->provider);
+                $overridesData = $post->platform_overrides;
+                $overrides = is_array($overridesData)
+                    ? (array) ($overridesData[$account->provider] ?? [])
+                    : [];
+
+                $result = $channel->publish(
+                    accountId: $account->account_id,
+                    content: $post->content,
+                    token: null,
+                    mediaUrl: $post->media_url,
+                    overrides: $overrides
+                );
+
+                if ($result->success) {
+                    $dispatchedCount++;
+                    $deliveryResults[$account->id] = [
+                        'account_id' => $account->id,
+                        'provider' => $account->provider,
+                        'status' => 'published',
+                        'platform_post_id' => $result->platformPostId,
+                        'permalink' => $result->permalink,
+                        'error_message' => null,
+                        'dispatched_at' => now()->toIso8601String(),
+                    ];
+                } else {
+                    $failedCount++;
+                    $errorMessage = $result->errorMessage;
+                    if ($result->isRevokedToken) {
+                        $revokedCount++;
+                        $account->update(['status' => 'revoked']);
+                    }
+                    $deliveryResults[$account->id] = [
+                        'account_id' => $account->id,
+                        'provider' => $account->provider,
+                        'status' => 'failed',
+                        'platform_post_id' => null,
+                        'permalink' => null,
+                        'error_message' => $result->errorMessage,
+                        'dispatched_at' => now()->toIso8601String(),
+                    ];
+                }
+            } catch (\Throwable $e) {
+                $failedCount++;
+                $errorMessage = $e->getMessage();
+                $deliveryResults[$account->id] = [
+                    'account_id' => $account->id,
+                    'provider' => $account->provider,
+                    'status' => 'failed',
+                    'platform_post_id' => null,
+                    'permalink' => null,
+                    'error_message' => $e->getMessage(),
+                    'dispatched_at' => now()->toIso8601String(),
+                ];
+            }
+        }
+
+        $chk3 = $post->checkpoints()->where('step', 'Downstream API Dispatch')->first();
+
+        // If all attempted channels failed due to revoked credentials, route to DLQ
+        if ($failedCount > 0 && $dispatchedCount === 0 && $revokedCount === $failedCount) {
+            $post->update([
+                'status' => 'dlq',
+                'delivery_results' => $deliveryResults,
+            ]);
+            $chk3?->update([
+                'status' => 'failed',
+                'error_message' => $errorMessage ?? 'All channel tokens revoked. Routed to DLQ.',
+            ]);
+        } elseif ($failedCount > 0 && $dispatchedCount === 0) {
+            $post->update([
+                'status' => 'partial_failure',
+                'delivery_results' => $deliveryResults,
+            ]);
+            $chk3?->update([
+                'status' => 'failed',
+                'error_message' => $errorMessage ?? 'Channel API dispatch failed',
+            ]);
+        } elseif ($failedCount > 0) {
+            $post->update([
+                'status' => 'partial_failure',
+                'delivery_results' => $deliveryResults,
+            ]);
+            $chk3?->update([
+                'status' => 'failed',
+                'error_message' => "Partial failure: {$failedCount} channel(s) failed. {$errorMessage}",
+            ]);
+        } else {
+            $post->update([
+                'status' => 'published',
+                'delivery_results' => $deliveryResults,
+            ]);
+            $chk3?->update([
+                'status' => 'completed',
+                'error_message' => null,
+            ]);
+        }
     }
 
     /**
@@ -253,11 +343,40 @@ final class PostPublishingService
             ->where('id', $postId)
             ->firstOrFail();
 
-        $post->update(['status' => 'published']);
-        $post->checkpoints()->where('status', 'failed')->update([
-            'status' => 'completed',
-            'error_message' => null,
+        $accountIds = $post->target_account_ids ?? [];
+        if (empty($accountIds)) {
+            $accountIds = SocialAccount::query()
+                ->where('organization_id', $tenantId)
+                ->pluck('id')
+                ->all();
+        }
+
+        $post->update(['status' => 'publishing']);
+        $post->checkpoints()->where('step', 'Downstream API Dispatch')->update([
+            'status' => 'in_progress',
         ]);
+
+        $this->dispatchPostToAccounts($post, $accountIds, true);
+
+        return $post->load('checkpoints');
+    }
+
+    public function publishScheduledPost(Post $post): Post
+    {
+        $accountIds = $post->target_account_ids ?? [];
+        if (empty($accountIds)) {
+            $accountIds = SocialAccount::query()
+                ->where('organization_id', $post->organization_id)
+                ->pluck('id')
+                ->all();
+        }
+
+        $post->update(['status' => 'publishing']);
+        $post->checkpoints()->where('step', 'Downstream API Dispatch')->update([
+            'status' => 'in_progress',
+        ]);
+
+        $this->dispatchPostToAccounts($post, $accountIds, false);
 
         return $post->load('checkpoints');
     }

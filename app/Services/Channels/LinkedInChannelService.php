@@ -140,6 +140,16 @@ final class LinkedInChannelService implements SocialChannelInterface
                 );
             }
 
+            if ($response->status() === 401) {
+                return new PublishResult(
+                    success: false,
+                    platformPostId: '',
+                    errorMessage: 'LinkedIn 401: Access token expired or revoked',
+                    rawResponse: (array) $response->json(),
+                    isRevokedToken: true,
+                );
+            }
+
             return new PublishResult(
                 success: false,
                 platformPostId: '',

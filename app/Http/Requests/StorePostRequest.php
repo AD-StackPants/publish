@@ -51,10 +51,25 @@ final class StorePostRequest extends FormRequest
             'content' => ['required', 'string'],
             'account_ids' => ['required', 'array', 'min:1'],
             'account_ids.*' => ['required', 'uuid', 'exists:social_accounts,id'],
-            'scheduled_at' => ['nullable', 'date'],
+            'scheduled_at' => ['nullable', 'date', 'after:'.now()->subMinutes(15)->toIso8601String()],
             'idempotency_key' => ['required', 'string'],
             'platform_overrides' => ['nullable', 'array'],
-            'media_url' => ['nullable', 'url'],
+            'media_url' => [
+                'nullable',
+                'string',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_string($value)) {
+                        return;
+                    }
+                    if (str_starts_with($value, 'data:image/')) {
+                        return;
+                    }
+                    if (filter_var($value, FILTER_VALIDATE_URL) !== false) {
+                        return;
+                    }
+                    $fail("The {$attribute} must be a valid URL or image data URI.");
+                },
+            ],
             'link_metadata' => ['nullable', 'array'],
         ];
     }

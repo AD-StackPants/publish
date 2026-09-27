@@ -116,6 +116,29 @@ final class FacebookChannelService implements SocialChannelInterface
                 );
             }
 
+            $data = (array) $response->json();
+            $error = is_array($data['error'] ?? null) ? $data['error'] : [];
+            $code = $error['code'] ?? null;
+            $subcode = $error['error_subcode'] ?? null;
+            $type = (string) ($error['type'] ?? '');
+
+            if ($code === 190 || $type === 'OAuthException') {
+                $msg = 'OAuthException 190: Access token revoked';
+                if ($subcode === 460) {
+                    $msg .= ' (password changed by user)';
+                } elseif ($subcode === 463) {
+                    $msg .= ' (token expired)';
+                }
+
+                return new PublishResult(
+                    success: false,
+                    platformPostId: '',
+                    errorMessage: $msg,
+                    rawResponse: $data,
+                    isRevokedToken: true,
+                );
+            }
+
             return new PublishResult(
                 success: false,
                 platformPostId: '',

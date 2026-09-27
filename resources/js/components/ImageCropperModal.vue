@@ -16,6 +16,7 @@ type AspectRatioPreset = '1:1' | '4:5' | '16:9';
 const selectedRatio = ref<AspectRatioPreset>('1:1');
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const zoom = ref(1);
+const rotation = ref(0);
 
 const aspectRatios: {
     label: string;
@@ -26,6 +27,11 @@ const aspectRatios: {
     { label: '4:5 Portrait (Insta/Meta)', value: '4:5', ratio: 4 / 5 },
     { label: '16:9 Landscape (X / Cards)', value: '16:9', ratio: 16 / 9 },
 ];
+
+const rotateImage = () => {
+    rotation.value = (rotation.value + 90) % 360;
+    renderCrop();
+};
 
 const renderCrop = () => {
     const canvas = canvasRef.value;
@@ -44,39 +50,34 @@ const renderCrop = () => {
             aspectRatios[0];
         const targetRatio = activePreset.ratio;
 
-        let targetWidth = 800;
-        let targetHeight = targetWidth / targetRatio;
+        const targetWidth = 800;
+        const targetHeight = targetWidth / targetRatio;
 
         canvas.width = targetWidth;
         canvas.height = targetHeight;
 
-        // Calculate source rect to fit center crop
-        const imgRatio = img.width / img.height;
-        let srcX = 0;
-        let srcY = 0;
-        let srcWidth = img.width;
-        let srcHeight = img.height;
-
-        if (imgRatio > targetRatio) {
-            srcWidth = img.height * targetRatio;
-            srcX = (img.width - srcWidth) / 2;
-        } else {
-            srcHeight = img.width / targetRatio;
-            srcY = (img.height - srcHeight) / 2;
-        }
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(
-            img,
-            srcX,
-            srcY,
-            srcWidth,
-            srcHeight,
-            0,
-            0,
-            targetWidth,
-            targetHeight,
+        ctx.save();
+
+        // Move origin to center of destination canvas
+        ctx.translate(targetWidth / 2, targetHeight / 2);
+        ctx.rotate((rotation.value * Math.PI) / 180);
+
+        // Effective dimensions based on rotation
+        const isSwapped = rotation.value === 90 || rotation.value === 270;
+        const effWidth = isSwapped ? img.height : img.width;
+        const effHeight = isSwapped ? img.width : img.height;
+
+        // Scaling factor to fill destination canvas
+        const scale = Math.max(
+            targetWidth / effWidth,
+            targetHeight / effHeight,
         );
+        const drawW = img.width * scale;
+        const drawH = img.height * scale;
+
+        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
     };
 };
 
@@ -84,6 +85,7 @@ watch(
     () => [props.isOpen, selectedRatio.value, props.imageSrc],
     () => {
         if (props.isOpen) {
+            rotation.value = 0;
             setTimeout(renderCrop, 50);
         }
     },
@@ -119,7 +121,7 @@ const applyCrop = () => {
                 <div class="flex items-center gap-2">
                     <Crop class="h-4 w-4 text-primary" />
                     <h3 class="text-sm font-semibold text-foreground">
-                        Inline Image Aspect Cropper
+                        Inline Image Aspect Cropper & Orientation
                     </h3>
                 </div>
                 <button
@@ -132,21 +134,33 @@ const applyCrop = () => {
 
             <!-- Body -->
             <div class="flex-1 space-y-4 overflow-y-auto p-5">
-                <!-- Ratio Selector -->
-                <div class="flex items-center gap-2">
+                <!-- Ratio Selector & Rotate Button -->
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <button
+                            v-for="preset in aspectRatios"
+                            :key="preset.value"
+                            type="button"
+                            @click="selectedRatio = preset.value"
+                            class="cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition"
+                            :class="
+                                selectedRatio === preset.value
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                            "
+                        >
+                            {{ preset.label }}
+                        </button>
+                    </div>
+
                     <button
-                        v-for="preset in aspectRatios"
-                        :key="preset.value"
                         type="button"
-                        @click="selectedRatio = preset.value"
-                        class="rounded-md border px-3 py-1.5 text-xs font-medium transition"
-                        :class="
-                            selectedRatio === preset.value
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-                        "
+                        @click="rotateImage"
+                        class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-2xs transition hover:bg-muted"
+                        title="Rotate 90 degrees clockwise (fixes mobile EXIF orientation)"
                     >
-                        {{ preset.label }}
+                        <RotateCw class="h-3.5 w-3.5" />
+                        <span>Rotate 90°</span>
                     </button>
                 </div>
 

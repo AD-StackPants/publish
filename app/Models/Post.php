@@ -20,6 +20,8 @@ use Illuminate\Support\Carbon;
  * @property string $status
  * @property Carbon|null $scheduled_at
  * @property string $idempotency_key
+ * @property list<string>|null $target_account_ids
+ * @property array<string, mixed>|null $delivery_results
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -38,6 +40,8 @@ final class Post extends Model
         'link_metadata',
         'status',
         'scheduled_at',
+        'target_account_ids',
+        'delivery_results',
         'idempotency_key',
     ];
 
@@ -50,6 +54,8 @@ final class Post extends Model
             'platform_overrides' => 'array',
             'link_metadata' => 'array',
             'scheduled_at' => 'datetime',
+            'target_account_ids' => 'array',
+            'delivery_results' => 'array',
         ];
     }
 

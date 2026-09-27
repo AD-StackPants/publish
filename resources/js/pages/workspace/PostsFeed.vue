@@ -258,6 +258,16 @@ const deletePost = async (id: string) => {
     }
 };
 
+const getScheduledRevokedAccounts = (post: Post) => {
+    if (post.status !== 'scheduled') return [];
+    const targetIds = post.target_account_ids || [];
+    return workspaceStore.accounts.filter((a) => {
+        const matchesTarget =
+            targetIds.length === 0 || targetIds.includes(a.id);
+        return matchesTarget && a.status === 'revoked';
+    });
+};
+
 const formatFriendlyDate = (dateStr?: string | null) => {
     if (!dateStr) return 'Unscheduled Draft';
     const d = new Date(dateStr);
@@ -789,6 +799,37 @@ const getPostsForDay = (dayIsoDate: string) => {
                             >
                                 {{ post.content }}
                             </p>
+
+                            <!-- Scheduled Token Invalidation Warning -->
+                            <div
+                                v-if="
+                                    getScheduledRevokedAccounts(post).length > 0
+                                "
+                                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-2.5 py-1.5 text-[11px] text-rose-800 dark:text-rose-300"
+                            >
+                                <div
+                                    class="flex items-center gap-1.5 font-medium"
+                                >
+                                    <AlertTriangle
+                                        class="size-3.5 shrink-0 text-rose-600 dark:text-rose-400"
+                                    />
+                                    <span>
+                                        Token revoked for
+                                        {{
+                                            getScheduledRevokedAccounts(post)
+                                                .map((a) => a.name)
+                                                .join(', ')
+                                        }}. Reconnection required before
+                                        schedule triggers.
+                                    </span>
+                                </div>
+                                <Link
+                                    :href="`/w/${workspaceStore.activeOrgSlug}/channels`"
+                                    class="font-semibold underline underline-offset-2 hover:opacity-80"
+                                >
+                                    Reconnect &rarr;
+                                </Link>
+                            </div>
 
                             <!-- Social Network Badges & Live Links -->
                             <div

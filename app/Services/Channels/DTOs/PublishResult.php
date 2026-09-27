@@ -15,5 +15,6 @@ final readonly class PublishResult
         public ?string $permalink = null,
         public ?string $errorMessage = null,
         public array $rawResponse = [],
+        public bool $isRevokedToken = false,
     ) {}
 }

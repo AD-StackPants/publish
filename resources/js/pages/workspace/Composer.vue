@@ -143,6 +143,8 @@ const generateUUID = () => {
     });
 };
 
+const currentIdempotencyKey = ref(`idem_${generateUUID()}`);
+
 // Target accounts
 const accounts = computed<SocialAccount[]>(() => workspaceStore.accounts);
 
@@ -232,8 +234,30 @@ const isFacebookOnly = computed(
         selectedPlatforms.value.has('facebook'),
 );
 
+// Accurate Unicode grapheme & URL counting (fixes surrogate pairs, emojis, and Twitter 23-char t.co wrapping)
+const countGraphemes = (str: string): number => {
+    if (!str) return 0;
+    if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
+        const segmenter = new (Intl as any).Segmenter('en', {
+            granularity: 'grapheme',
+        });
+        return Array.from(segmenter.segment(str)).length;
+    }
+    return Array.from(str).length;
+};
+
+const countTwitterChars = (text: string): number => {
+    if (!text) return 0;
+    // Replace all URLs with 23-char placeholder (t.co standard length)
+    const urlRegex = /https?:\/\/[^\s]+/g;
+    const textWithNormalizedUrls = text.replace(urlRegex, 'x'.repeat(23));
+    return countGraphemes(textWithNormalizedUrls);
+};
+
 // Character limits (platform-aware: unselected platforms do not trigger false limit warnings)
-const twitterCharCount = computed(() => resolvedTwitterText.value.length);
+const twitterCharCount = computed(() =>
+    countTwitterChars(resolvedTwitterText.value),
+);
 const twitterLimit = 280;
 const isTwitterOver = computed(() => {
     if (
@@ -245,7 +269,9 @@ const isTwitterOver = computed(() => {
     return twitterCharCount.value > twitterLimit;
 });
 
-const linkedinCharCount = computed(() => resolvedLinkedInText.value.length);
+const linkedinCharCount = computed(() =>
+    countGraphemes(resolvedLinkedInText.value),
+);
 const linkedinLimit = 3000;
 const isLinkedInOver = computed(() => {
     if (
@@ -257,7 +283,9 @@ const isLinkedInOver = computed(() => {
     return linkedinCharCount.value > linkedinLimit;
 });
 
-const facebookCharCount = computed(() => resolvedFacebookText.value.length);
+const facebookCharCount = computed(() =>
+    countGraphemes(resolvedFacebookText.value),
+);
 const facebookLimit = 63206;
 const isFacebookOver = computed(() => {
     if (
@@ -397,6 +425,8 @@ const clearComposer = () => {
     scheduledTime.value = '';
     localStorage.removeItem(DRAFT_STORAGE_KEY);
     lastSavedAt.value = null;
+    currentIdempotencyKey.value = `idem_${generateUUID()}`;
+    mediaAspectRatio.value = null;
 };
 
 // Auto-detect link pasted in content
@@ -440,6 +470,32 @@ const removeLinkPreview = () => {
     linkUrlInput.value = '';
 };
 
+// Image aspect ratio validation (Instagram / Facebook limits)
+const mediaAspectRatio = ref<number | null>(null);
+const hasAspectRatioWarning = computed(() => {
+    if (!mediaAspectRatio.value) return false;
+    // Instagram/Facebook feeds reject or crop images outside 4:5 (0.80) to 1.91:1 (~1.91)
+    return mediaAspectRatio.value < 0.79 || mediaAspectRatio.value > 1.95;
+});
+
+const inspectImageAspect = (url: string) => {
+    if (!url) {
+        mediaAspectRatio.value = null;
+        return;
+    }
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+        if (img.width && img.height) {
+            mediaAspectRatio.value = img.width / img.height;
+        }
+    };
+};
+
+watch(mediaUrl, (newUrl) => {
+    inspectImageAspect(newUrl);
+});
+
 // Image upload simulator
 const handleFileUpload = (e: Event) => {
     const target = e.target as HTMLInputElement;
@@ -459,6 +515,7 @@ const handleCropped = (dataUrl: string) => {
 
 const removeImage = () => {
     mediaUrl.value = '';
+    mediaAspectRatio.value = null;
 };
 
 // Auto-save logic
@@ -539,8 +596,64 @@ onUnmounted(() => {
     if (autoSaveTimer) clearInterval(autoSaveTimer);
 });
 
+// Accurate target timezone and DST calculation helper
+const formatTargetDateInTimezoneToUtc = (
+    dateStr: string,
+    timeStr: string,
+    timeZone: string,
+): string => {
+    try {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const [hour, minute] = timeStr.split(':').map(Number);
+
+        // Approximate UTC target timestamp
+        const targetUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
+
+        // Determine offset of specified timeZone on target date (accounts for DST jumps)
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone,
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            hourCycle: 'h23',
+        });
+
+        const parts = formatter.formatToParts(new Date(targetUtc));
+        const getPart = (type: string) => {
+            const found = parts.find((p) => p.type === type);
+            return found ? parseInt(found.value, 10) : 0;
+        };
+
+        const tzYear = getPart('year');
+        const tzMonth = getPart('month');
+        const tzDay = getPart('day');
+        const tzHour = getPart('hour');
+        const tzMinute = getPart('minute');
+
+        const tzTimeAsUtc = Date.UTC(
+            tzYear,
+            tzMonth - 1,
+            tzDay,
+            tzHour,
+            tzMinute,
+            0,
+        );
+        const offsetMs = tzTimeAsUtc - targetUtc;
+
+        return new Date(targetUtc - offsetMs).toISOString();
+    } catch {
+        return new Date(`${dateStr}T${timeStr}:00`).toISOString();
+    }
+};
+
 // Dispatch / Publish Post
 const handleDispatch = async (publishImmediate = false) => {
+    // 1. Guard against double-click race condition
+    if (isSubmitting.value) return;
+
     if (!content.value.trim() && !mediaUrl.value && !linkMetadata.value) {
         alert('Please write content or attach media before publishing.');
         return;
@@ -557,9 +670,12 @@ const handleDispatch = async (publishImmediate = false) => {
     let scheduledAt: string | null = null;
     if (!publishImmediate && isScheduled.value && scheduledDate.value) {
         const timePart = scheduledTime.value || '12:00';
-        scheduledAt = new Date(
-            `${scheduledDate.value}T${timePart}:00`,
-        ).toISOString();
+        const tz = workspaceStore.currentOrg?.timezone || 'UTC';
+        scheduledAt = formatTargetDateInTimezoneToUtc(
+            scheduledDate.value,
+            timePart,
+            tz,
+        );
     }
 
     const overrides: PlatformOverrides = {};
@@ -573,8 +689,6 @@ const handleDispatch = async (publishImmediate = false) => {
         overrides.facebook = { content: facebookContent.value };
     }
 
-    const idempotencyKey = `idem_${generateUUID()}`;
-
     try {
         const payload = {
             organization_id: workspaceStore.activeOrgId,
@@ -586,10 +700,13 @@ const handleDispatch = async (publishImmediate = false) => {
             status: scheduledAt ? 'scheduled' : 'published',
             scheduled_at: scheduledAt,
             target_account_ids: selectedAccountIds.value,
-            idempotency_key: idempotencyKey,
+            idempotency_key: currentIdempotencyKey.value,
         };
 
         await apiClient.post('/social/posts', payload);
+
+        // Rotate idempotency key ONLY upon successful creation
+        currentIdempotencyKey.value = `idem_${generateUUID()}`;
 
         dispatchSuccessMessage.value = scheduledAt
             ? `Post successfully scheduled for ${new Date(scheduledAt).toLocaleString()}!`
@@ -608,6 +725,7 @@ const handleDispatch = async (publishImmediate = false) => {
         hasLinkedInOverride.value = false;
         hasFacebookOverride.value = false;
         lastSavedAt.value = null;
+        mediaAspectRatio.value = null;
 
         // Redirect to feed after 1.5s
         setTimeout(() => {
@@ -1305,6 +1423,33 @@ const handleDispatch = async (publishImmediate = false) => {
                                     title="Remove photo"
                                 >
                                     <X class="size-3.5" />
+                                </button>
+                            </div>
+
+                            <!-- Aspect Ratio Safety Warning for Social Channels -->
+                            <div
+                                v-if="hasAspectRatioWarning"
+                                class="flex items-center justify-between border-t border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-[11px] text-amber-800 dark:text-amber-300"
+                            >
+                                <div
+                                    class="flex items-center gap-1.5 font-medium"
+                                >
+                                    <AlertTriangle
+                                        class="size-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+                                    />
+                                    <span
+                                        >Aspect ratio ({{
+                                            mediaAspectRatio?.toFixed(2)
+                                        }}:1) exceeds social feed limits (4:5 to
+                                        16:9).</span
+                                    >
+                                </div>
+                                <button
+                                    type="button"
+                                    @click="isCropperOpen = true"
+                                    class="cursor-pointer font-semibold underline underline-offset-2 hover:opacity-85"
+                                >
+                                    Open Cropper to Fix &rarr;
                                 </button>
                             </div>
                         </div>

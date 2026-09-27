@@ -94,6 +94,7 @@ export type Post = {
     scheduled_at?: string | null;
     idempotency_key: string;
     target_account_ids?: string[];
+    delivery_results?: Record<string, any>;
     live_urls?: Record<string, string>;
     dlq_message_id?: string;
     checkpoints?: PostCheckpoint[];
