@@ -24,6 +24,7 @@ const STORAGE_KEYS = {
     ACCOUNTS: 'demo_workspace_accounts',
     POSTS: 'demo_workspace_posts',
     HEALTH: 'demo_workspace_health',
+    MEMBERS: 'demo_workspace_members',
 };
 
 function getStorage<T>(key: string, fallback: T): T {
@@ -140,7 +141,14 @@ export function setupMockAdapter(axiosInstance: AxiosInstance): void {
                 } else if (typeof config.params === 'object') {
                     Object.entries(config.params).forEach(([key, val]) => {
                         if (val !== undefined && val !== null) {
-                            searchParams.set(key, String(val));
+                            const stringVal =
+                                typeof val === 'string'
+                                    ? val
+                                    : typeof val === 'number' ||
+                                        typeof val === 'boolean'
+                                      ? String(val)
+                                      : JSON.stringify(val);
+                            searchParams.set(key, stringVal);
                         }
                     });
                 }
@@ -215,6 +223,96 @@ export function setupMockAdapter(axiosInstance: AxiosInstance): void {
                         statusCode = 404;
                         responseData = { message: 'Organization not found' };
                     }
+                }
+
+                // 1c. Members: GET /api/v1/organizations/:id/members
+                else if (
+                    pathname.match(
+                        /^\/api\/v1\/organizations\/[^/]+\/members$/,
+                    ) &&
+                    method === 'get'
+                ) {
+                    const members = getStorage<
+                        Array<{
+                            id: string;
+                            name: string;
+                            email: string;
+                            role: string;
+                            created_at: string;
+                        }>
+                    >(STORAGE_KEYS.MEMBERS, [
+                        {
+                            id: 'user-admin-1',
+                            name: 'Workspace Admin',
+                            email: 'admin@example.com',
+                            role: 'Owner',
+                            created_at: 'Sep 26, 2026',
+                        },
+                    ]);
+                    responseData = members;
+                }
+
+                // 1d. Invite Member: POST /api/v1/organizations/:id/members
+                else if (
+                    pathname.match(
+                        /^\/api\/v1\/organizations\/[^/]+\/members$/,
+                    ) &&
+                    method === 'post'
+                ) {
+                    const body =
+                        typeof config.data === 'string'
+                            ? JSON.parse(config.data)
+                            : config.data;
+                    const members = getStorage<
+                        Array<{
+                            id: string;
+                            name: string;
+                            email: string;
+                            role: string;
+                            created_at: string;
+                        }>
+                    >(STORAGE_KEYS.MEMBERS, [
+                        {
+                            id: 'user-admin-1',
+                            name: 'Workspace Admin',
+                            email: 'admin@example.com',
+                            role: 'Owner',
+                            created_at: 'Sep 26, 2026',
+                        },
+                    ]);
+                    const newMember = {
+                        id: `user-${Date.now()}`,
+                        name: body.email ? body.email.split('@')[0] : 'Member',
+                        email: body.email,
+                        role: body.role || 'Editor',
+                        created_at: 'Just now',
+                    };
+                    members.push(newMember);
+                    setStorage(STORAGE_KEYS.MEMBERS, members);
+                    statusCode = 201;
+                    responseData = newMember;
+                }
+
+                // 1e. Remove Member: DELETE /api/v1/organizations/:id/members/:userId
+                else if (
+                    pathname.match(
+                        /^\/api\/v1\/organizations\/[^/]+\/members\/[^/]+$/,
+                    ) &&
+                    method === 'delete'
+                ) {
+                    const userId = pathname.split('/').pop();
+                    let members = getStorage<
+                        Array<{
+                            id: string;
+                            name: string;
+                            email: string;
+                            role: string;
+                            created_at: string;
+                        }>
+                    >(STORAGE_KEYS.MEMBERS, []);
+                    members = members.filter((m) => m.id !== userId);
+                    setStorage(STORAGE_KEYS.MEMBERS, members);
+                    responseData = { message: 'Member removed.' };
                 }
 
                 // 2. Accounts: GET /api/v1/accounts

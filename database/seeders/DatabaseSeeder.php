@@ -125,7 +125,7 @@ final class DatabaseSeeder extends Seeder
         );
 
         // 3. Seed Active Subscription for the "stackpants" Tenant
-        $proPlan = $seededPlans['plan-pro'] ?? Plan::query()->where('slug', 'plan-pro')->first();
+        $proPlan = $seededPlans['plan-pro'];
 
         /** @var Subscription $subscription */
         $subscription = Subscription::query()->updateOrCreate(
@@ -141,17 +141,15 @@ final class DatabaseSeeder extends Seeder
             ]
         );
 
-        if ($proPlan) {
-            $subscription->subscriptionItems()->updateOrCreate(
-                [
-                    'subscription_id' => $subscription->id,
-                    'plan_id' => $proPlan->id,
-                ],
-                [
-                    'quantity' => 1,
-                ]
-            );
-        }
+        $subscription->subscriptionItems()->updateOrCreate(
+            [
+                'subscription_id' => $subscription->id,
+                'plan_id' => $proPlan->id,
+            ],
+            [
+                'quantity' => 1,
+            ]
+        );
 
         // 4. Seed Standard User (keeping test email: test@example.com) assigned to "stackpants" tenant
         $defaultPassword = Hash::make('password');

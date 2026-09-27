@@ -53,3 +53,83 @@ test('superadmin can access any workspace settings', function () {
         ->where('tenant_slug', 'client-org')
     );
 });
+
+test('organization member can invite a new team member', function () {
+    $org = Organization::query()->create(['name' => 'Team Org', 'slug' => 'team-org', 'timezone' => 'UTC']);
+    $user = User::factory()->create([
+        'organization_id' => $org->id,
+        'role' => 'Admin',
+    ]);
+
+    $this->actingAs($user);
+
+    $response = $this->postJson("/api/v1/organizations/{$org->id}/members", [
+        'name' => 'Jane Collaborator',
+        'email' => 'jane@example.com',
+        'role' => 'Editor',
+    ], ['X-Organization-Id' => $org->id]);
+
+    $response->assertCreated()
+        ->assertJsonPath('email', 'jane@example.com')
+        ->assertJsonPath('role', 'Editor');
+
+    $this->assertDatabaseHas('users', [
+        'organization_id' => $org->id,
+        'email' => 'jane@example.com',
+        'role' => 'Editor',
+    ]);
+});
+
+test('cannot invite member if email already belongs to organization', function () {
+    $org = Organization::query()->create(['name' => 'Team Org 2', 'slug' => 'team-org-2', 'timezone' => 'UTC']);
+    $user = User::factory()->create([
+        'organization_id' => $org->id,
+        'email' => 'existing@example.com',
+        'role' => 'Admin',
+    ]);
+
+    $this->actingAs($user);
+
+    $response = $this->postJson("/api/v1/organizations/{$org->id}/members", [
+        'name' => 'Existing Duplicate',
+        'email' => 'existing@example.com',
+        'role' => 'Member',
+    ], ['X-Organization-Id' => $org->id]);
+
+    $response->assertStatus(422);
+});
+
+test('organization member can remove another member but not themselves', function () {
+    $org = Organization::query()->create(['name' => 'Team Org 3', 'slug' => 'team-org-3', 'timezone' => 'UTC']);
+    $admin = User::factory()->create([
+        'organization_id' => $org->id,
+        'role' => 'Admin',
+    ]);
+    $member = User::factory()->create([
+        'organization_id' => $org->id,
+        'role' => 'Contributor',
+    ]);
+
+    $this->actingAs($admin);
+
+    // Cannot remove oneself
+    $selfResponse = $this->deleteJson(
+        "/api/v1/organizations/{$org->id}/members/{$admin->id}",
+        [],
+        ['X-Organization-Id' => $org->id]
+    );
+    $selfResponse->assertStatus(422);
+
+    // Can remove other member
+    $removeResponse = $this->deleteJson(
+        "/api/v1/organizations/{$org->id}/members/{$member->id}",
+        [],
+        ['X-Organization-Id' => $org->id]
+    );
+    $removeResponse->assertOk();
+
+    $this->assertDatabaseMissing('users', [
+        'id' => $member->id,
+        'organization_id' => $org->id,
+    ]);
+});

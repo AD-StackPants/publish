@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { apiClient } from '@/api/client';
 import {
     Building2,
     Clock,
@@ -59,6 +61,52 @@ const inviteEmail = ref('');
 const inviteRole = ref<'Admin' | 'Editor' | 'Contributor'>('Editor');
 const isInviting = ref(false);
 const inviteSuccess = ref(false);
+const inviteError = ref<string | null>(null);
+const isRemovingMember = ref<string | null>(null);
+
+const isSeatLimitReached = computed(() => {
+    return localMembers.value.length >= props.totalSeats;
+});
+
+const openInviteModal = () => {
+    inviteEmail.value = '';
+    inviteRole.value = 'Editor';
+    inviteError.value = null;
+    inviteSuccess.value = false;
+    isInviteModalOpen.value = true;
+};
+
+const fetchMembers = async () => {
+    if (!workspaceStore.currentOrg?.id) return;
+    try {
+        const res = await apiClient.get<WorkspaceMember[]>(
+            `/organizations/${workspaceStore.currentOrg.id}/members`,
+        );
+        if (Array.isArray(res.data) && res.data.length > 0) {
+            localMembers.value = res.data;
+        }
+    } catch {
+        // Fallback to props
+    }
+};
+
+onMounted(async () => {
+    if (props.members && props.members.length > 0) {
+        localMembers.value = [...props.members];
+    } else {
+        await fetchMembers();
+    }
+});
+
+watch(
+    () => props.members,
+    (newMembers) => {
+        if (newMembers && newMembers.length > 0) {
+            localMembers.value = [...newMembers];
+        }
+    },
+    { immediate: true },
+);
 
 // Publishing defaults state
 const defaultPostGap = ref('15');
@@ -155,19 +203,42 @@ const handleSaveProfile = async () => {
     }
 };
 
-const handleSendInvite = () => {
-    if (!inviteEmail.value || !inviteEmail.value.includes('@')) return;
-    isInviting.value = true;
+const handleSendInvite = async () => {
+    const email = inviteEmail.value.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+        inviteError.value = 'Please enter a valid email address.';
+        return;
+    }
 
-    setTimeout(() => {
-        localMembers.value.push({
-            id: `temp-${Date.now()}`,
-            name: inviteEmail.value.split('@')[0],
-            email: inviteEmail.value,
-            role: inviteRole.value,
-            created_at: 'Just now',
-        });
-        isInviting.value = false;
+    if (localMembers.value.some((m) => m.email.toLowerCase() === email)) {
+        inviteError.value = 'This user is already a member of this workspace.';
+        return;
+    }
+
+    if (isSeatLimitReached.value) {
+        inviteError.value = `Workspace seat limit of ${props.totalSeats} reached. Upgrade your plan or add seats in billing.`;
+        return;
+    }
+
+    const orgId = workspaceStore.currentOrg?.id;
+    if (!orgId) {
+        inviteError.value = 'No active organization selected.';
+        return;
+    }
+
+    isInviting.value = true;
+    inviteError.value = null;
+
+    try {
+        const res = await apiClient.post<WorkspaceMember>(
+            `/organizations/${orgId}/members`,
+            {
+                email,
+                role: inviteRole.value,
+            },
+        );
+
+        localMembers.value.push(res.data);
         inviteSuccess.value = true;
         inviteEmail.value = '';
 
@@ -175,16 +246,55 @@ const handleSendInvite = () => {
             inviteSuccess.value = false;
             isInviteModalOpen.value = false;
         }, 1200);
-    }, 600);
+    } catch (err: unknown) {
+        const axiosErr = err as {
+            response?: {
+                data?: {
+                    message?: string;
+                    errors?: Record<string, string[]>;
+                };
+            };
+        };
+        const msg =
+            axiosErr.response?.data?.errors?.email?.[0] ||
+            axiosErr.response?.data?.message ||
+            'Failed to send workspace invitation. Please try again.';
+        inviteError.value = msg;
+    } finally {
+        isInviting.value = false;
+    }
 };
 
-const handleRemoveMember = (id: string) => {
+const handleRemoveMember = async (id: string) => {
     if (
-        confirm(
+        !confirm(
             "Are you sure you want to revoke this member's access to the workspace?",
         )
     ) {
+        return;
+    }
+
+    const orgId = workspaceStore.currentOrg?.id;
+    if (!orgId) return;
+
+    isRemovingMember.value = id;
+    try {
+        await apiClient.delete(`/organizations/${orgId}/members/${id}`);
         localMembers.value = localMembers.value.filter((m) => m.id !== id);
+    } catch (err: unknown) {
+        const axiosErr = err as {
+            response?: {
+                data?: {
+                    message?: string;
+                };
+            };
+        };
+        alert(
+            axiosErr.response?.data?.message ||
+                'Failed to remove member. Please try again.',
+        );
+    } finally {
+        isRemovingMember.value = null;
     }
 };
 </script>
@@ -419,7 +529,7 @@ const handleRemoveMember = (id: string) => {
 
                 <button
                     type="button"
-                    @click="isInviteModalOpen = true"
+                    @click="openInviteModal"
                     class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs transition hover:bg-accent"
                 >
                     <UserPlus class="h-3.5 w-3.5 text-primary" />
@@ -501,9 +611,14 @@ const handleRemoveMember = (id: string) => {
                             v-if="member.role !== 'Owner'"
                             type="button"
                             @click="handleRemoveMember(member.id)"
-                            class="cursor-pointer text-xs text-destructive hover:underline"
+                            :disabled="isRemovingMember === member.id"
+                            class="cursor-pointer text-xs text-destructive hover:underline disabled:opacity-50"
                         >
-                            Remove
+                            {{
+                                isRemovingMember === member.id
+                                    ? 'Removing...'
+                                    : 'Remove'
+                            }}
                         </button>
                     </div>
                 </div>
@@ -704,11 +819,43 @@ const handleRemoveMember = (id: string) => {
                     </button>
                 </div>
 
+                <!-- Toast / Alert States -->
                 <div
                     v-if="inviteSuccess"
-                    class="rounded-lg bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-800 dark:text-emerald-200"
+                    class="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-800 dark:text-emerald-200"
                 >
                     Invitation sent successfully!
+                </div>
+
+                <div
+                    v-if="inviteError"
+                    class="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs font-semibold text-destructive"
+                >
+                    <AlertTriangle class="h-4 w-4 shrink-0" />
+                    <span>{{ inviteError }}</span>
+                </div>
+
+                <!-- Seat Limit Warning Notice -->
+                <div
+                    v-if="isSeatLimitReached"
+                    class="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300"
+                >
+                    <p class="font-semibold">Seat Quota Reached</p>
+                    <p
+                        class="mt-0.5 text-[11px] text-amber-700 dark:text-amber-400"
+                    >
+                        All {{ props.totalSeats }} seats are currently
+                        allocated. To add more teammates, please add seats or
+                        upgrade in Billing.
+                    </p>
+                    <div class="mt-2">
+                        <Link
+                            :href="`/w/${workspaceStore.currentOrg?.slug || 'workspace'}/settings?tab=billing`"
+                            class="inline-flex items-center gap-1 font-semibold text-primary underline"
+                        >
+                            Manage Seats in Billing &rarr;
+                        </Link>
+                    </div>
                 </div>
 
                 <div class="space-y-3">
@@ -721,7 +868,9 @@ const handleRemoveMember = (id: string) => {
                             v-model="inviteEmail"
                             type="email"
                             placeholder="colleague@company.com"
-                            class="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                            @keyup.enter="handleSendInvite"
+                            :disabled="isInviting || isSeatLimitReached"
+                            class="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:outline-none disabled:opacity-50"
                         />
                     </div>
 
@@ -732,7 +881,8 @@ const handleRemoveMember = (id: string) => {
                         >
                         <select
                             v-model="inviteRole"
-                            class="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                            :disabled="isInviting || isSeatLimitReached"
+                            class="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs focus:ring-1 focus:ring-primary focus:outline-none disabled:opacity-50"
                         >
                             <option value="Admin">
                                 Admin (Full channel & billing access)
@@ -758,7 +908,9 @@ const handleRemoveMember = (id: string) => {
                     <button
                         type="button"
                         @click="handleSendInvite"
-                        :disabled="isInviting || !inviteEmail"
+                        :disabled="
+                            isInviting || !inviteEmail || isSeatLimitReached
+                        "
                         class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     >
                         <Loader2

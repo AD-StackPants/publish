@@ -24,8 +24,11 @@ Route::prefix('v1')->group(function () {
 
     // Tenant-isolated endpoints enforced via X-Organization-Id
     Route::middleware([ResolveTenant::class])->group(function () {
-        // Workspace
+        // Workspace & Team Members
         Route::patch('/organizations/{id}', [WorkspaceController::class, 'update']);
+        Route::get('/organizations/{id}/members', [WorkspaceController::class, 'members']);
+        Route::post('/organizations/{id}/members', [WorkspaceController::class, 'inviteMember']);
+        Route::delete('/organizations/{id}/members/{userId}', [WorkspaceController::class, 'removeMember']);
 
         // Social Accounts Hub
         Route::get('/accounts', [SocialAccountController::class, 'index']);
