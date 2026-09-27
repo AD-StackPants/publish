@@ -29,6 +29,7 @@ export const useBillingStore = defineStore('billing', () => {
     const cancelAtPeriodEnd = ref<boolean>(false);
     const activeAddons = ref<ActiveAddon[]>([]);
     const invoices = ref<Invoice[]>([]);
+    const isBypassed = ref<boolean>(false);
 
     // Multi-item interactive Cart
     const cart = ref<CartItem[]>([]);
@@ -43,6 +44,9 @@ export const useBillingStore = defineStore('billing', () => {
 
     // Entitlement calculations
     const baseChannelLimit = computed(() => {
+        if (isBypassed.value) {
+            return 999999;
+        }
         return (currentPlan.value?.features?.channels_limit as number) ?? 5;
     });
 
@@ -53,10 +57,16 @@ export const useBillingStore = defineStore('billing', () => {
     });
 
     const totalChannelLimit = computed(() => {
+        if (isBypassed.value) {
+            return 999999;
+        }
         return baseChannelLimit.value + extraChannelsFromAddons.value;
     });
 
     const canAddChannel = (currentCount: number): boolean => {
+        if (isBypassed.value) {
+            return true;
+        }
         return currentCount < totalChannelLimit.value;
     };
 
@@ -143,6 +153,9 @@ export const useBillingStore = defineStore('billing', () => {
                 cancelAtPeriodEnd.value = res.data.cancelAtPeriodEnd;
                 activeAddons.value = res.data.activeAddons || [];
                 invoices.value = res.data.invoices || [];
+                isBypassed.value = Boolean(
+                    res.data.is_bypassed || res.data.can_bypass_subscription,
+                );
             }
         } catch (e: any) {
             error.value = e?.message || 'Failed to fetch subscription';
@@ -209,6 +222,7 @@ export const useBillingStore = defineStore('billing', () => {
         cancelAtPeriodEnd,
         activeAddons,
         invoices,
+        isBypassed,
         cart,
         isCartOpen,
         isUpgradeModalOpen,

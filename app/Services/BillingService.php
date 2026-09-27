@@ -9,6 +9,7 @@ use App\Models\Plan;
 use App\Models\SocialAccount;
 use App\Models\Subscription;
 use App\Models\SubscriptionItem;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -72,6 +73,14 @@ final class BillingService
         $channelsUsed = SocialAccount::query()->where('organization_id', $tenantId)->count();
         $channelsLimit = $subscription->totalChannelsAllowed();
 
+        /** @var User|null $currentUser */
+        $currentUser = auth()->user();
+        $isSuperAdmin = $currentUser instanceof User && $currentUser->canBypassSubscription();
+
+        if ($isSuperAdmin) {
+            $channelsLimit = 999999;
+        }
+
         $activeAddons = $subscription->activeAddons()->map(function (SubscriptionItem $item) {
             $plan = $item->plan;
 
@@ -112,6 +121,8 @@ final class BillingService
             'cancelAtPeriodEnd' => (bool) $subscription->cancel_at_period_end,
             'channels_limit' => $channelsLimit,
             'channels_used' => $channelsUsed,
+            'is_bypassed' => $isSuperAdmin,
+            'can_bypass_subscription' => $isSuperAdmin,
             'addons' => $activeAddons,
             'activeAddons' => $activeAddons,
             'invoices' => $invoices,

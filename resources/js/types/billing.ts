@@ -69,4 +69,6 @@ export type SubscriptionDetails = {
     cancelAtPeriodEnd: boolean;
     activeAddons: ActiveAddon[];
     invoices: Invoice[];
+    is_bypassed?: boolean;
+    can_bypass_subscription?: boolean;
 };
