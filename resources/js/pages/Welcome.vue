@@ -1157,7 +1157,7 @@ const toggleFaq = (index: number) => {
                             </ul>
                         </div>
                         <Link
-                            :href="workspaceHref('/settings/billing')"
+                            :href="workspaceHref('/settings?tab=billing')"
                             class="mt-8 block rounded-xl bg-primary py-2.5 text-center text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
                         >
                             Start 14-Day Free Trial
@@ -1220,7 +1220,7 @@ const toggleFaq = (index: number) => {
                             </ul>
                         </div>
                         <Link
-                            :href="workspaceHref('/settings/billing')"
+                            :href="workspaceHref('/settings?tab=billing')"
                             class="mt-8 block rounded-xl border border-border bg-background py-2.5 text-center text-xs font-semibold text-foreground transition hover:bg-muted"
                         >
                             Scale Your Agency
@@ -1249,7 +1249,7 @@ const toggleFaq = (index: number) => {
                         </div>
                     </div>
                     <Link
-                        :href="workspaceHref('/settings/billing')"
+                        :href="workspaceHref('/settings?tab=billing')"
                         class="cursor-pointer text-xs font-semibold text-primary hover:underline"
                     >
                         Explore Add-on Cart &rarr;
@@ -1387,7 +1387,7 @@ const toggleFaq = (index: number) => {
                         >Channels</Link
                     >
                     <Link
-                        :href="workspaceHref('/settings/billing')"
+                        :href="workspaceHref('/settings?tab=billing')"
                         class="transition hover:text-foreground"
                         >Billing</Link
                     >

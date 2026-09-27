@@ -93,12 +93,6 @@ Route::middleware(['auth', 'verified', EnsureTenantAccess::class])->prefix('w/{t
             'members' => $members,
         ]);
     })->name('workspace.settings');
-
-    Route::get('/settings/billing', function (string $tenant_slug) {
-        return Inertia::render('workspace/Billing', [
-            'tenant_slug' => $tenant_slug,
-        ]);
-    })->name('workspace.billing');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

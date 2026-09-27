@@ -26,6 +26,13 @@ onMounted(async () => {
     await billingStore.fetchCatalog();
     await billingStore.fetchSubscription();
     await workspaceStore.fetchAccounts();
+
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('changePlan') === 'true') {
+            billingStore.isChangePlanModalOpen = true;
+        }
+    }
 });
 
 const currentPlan = computed(() => billingStore.currentPlan);

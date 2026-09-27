@@ -19,6 +19,8 @@ import {
     RefreshCw,
     X,
     CreditCard,
+    Zap,
+    ArrowUpRight,
 } from '@lucide/vue';
 import {
     SidebarProvider,
@@ -89,11 +91,96 @@ const currentSlug = computed(() => {
 const currentSubscription = computed(() => {
     return (
         workspaceStore.currentOrg?.subscription || {
-            plan: 'Growth Pro',
-            status: 'active',
+            plan: 'Pro Plan',
+            status: 'active' as const,
             seats: 5,
-            billing_period: 'monthly',
+            billing_period: 'monthly' as const,
             renews_at: '2026-10-15',
+            cancel_at_period_end: false,
+            scheduled_posts_limit: 30,
+            scheduled_posts_used: 18,
+        }
+    );
+});
+
+const isFreePlan = computed(() => {
+    const plan = (currentSubscription.value.plan || '').toLowerCase();
+    return plan.includes('free');
+});
+
+const isCancelled = computed(() => {
+    const status = currentSubscription.value.status;
+    return (
+        status === 'canceled' ||
+        Boolean(currentSubscription.value.cancel_at_period_end)
+    );
+});
+
+const daysRemaining = computed(() => {
+    if (!currentSubscription.value.renews_at) return 14;
+    const renewDate = new Date(currentSubscription.value.renews_at);
+    const now = new Date();
+    const diffMs = renewDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+});
+
+const postsQuota = computed(() => {
+    if (isFreePlan.value) {
+        return {
+            used: currentSubscription.value.scheduled_posts_used ?? 3,
+            limit: currentSubscription.value.scheduled_posts_limit ?? 10,
+            label: '10 Scheduled Posts per month',
+        };
+    }
+    const plan = (currentSubscription.value.plan || '').toLowerCase();
+    if (plan.includes('agency')) {
+        return {
+            used: currentSubscription.value.scheduled_posts_used ?? 64,
+            limit: currentSubscription.value.scheduled_posts_limit ?? 150,
+            label: '150 Scheduled Posts per month',
+        };
+    }
+    // Default Pro Plan: exactly 30 Scheduled Posts per month
+    return {
+        used: currentSubscription.value.scheduled_posts_used ?? 18,
+        limit: currentSubscription.value.scheduled_posts_limit ?? 30,
+        label: '30 Scheduled Posts per month',
+    };
+});
+
+const postsUsagePercentage = computed(() => {
+    return Math.min(
+        100,
+        Math.round((postsQuota.value.used / postsQuota.value.limit) * 100),
+    );
+});
+
+const channelUsage = computed(() => {
+    const connected = workspaceStore.accounts.length;
+    const planName = (currentSubscription.value.plan || '').toLowerCase();
+    const limit = planName.includes('agency')
+        ? 15
+        : planName.includes('free')
+          ? 1
+          : 5;
+    const percentage = Math.min(100, Math.round((connected / limit) * 100));
+    return {
+        connected,
+        limit,
+        percentage,
+    };
+});
+
+const currentUser = computed(() => {
+    return (
+        (
+            page.props.auth as
+                | { user?: { name: string; email: string } }
+                | undefined
+        )?.user || {
+            name: 'Workspace Admin',
+            email: 'admin@example.com',
         }
     );
 });
@@ -163,11 +250,6 @@ const defaultBreadcrumbs = computed<BreadcrumbItem[]>(() => {
         items.push({
             title: 'Settings',
             href: `/w/${currentSlug.value}/settings`,
-        });
-    } else if (page.component === 'workspace/Billing') {
-        items.push({
-            title: 'Billing & Invoices',
-            href: `/w/${currentSlug.value}/settings/billing`,
         });
     }
 
@@ -285,38 +367,177 @@ const activeBreadcrumbs = computed(() => {
 
             <!-- Sidebar Footer: Tenant Subscription, Settings at Bottom & Logout -->
             <SidebarFooter class="gap-2">
-                <!-- Tenant Subscription Card -->
+                <!-- Tenant Subscription & Social Publishing Usage (Flat Layout, Entire Area Clickable) -->
                 <Link
-                    :href="`/w/${currentSlug}/settings/billing`"
-                    class="block cursor-pointer space-y-1.5 rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-2.5 text-xs text-sidebar-foreground transition group-data-[collapsible=icon]:hidden hover:border-primary/40 hover:bg-sidebar-accent/80"
+                    :href="`/w/${currentSlug}/settings?tab=billing`"
+                    class="group/sub block cursor-pointer space-y-2.5 rounded-lg px-2 py-1.5 text-xs transition-colors group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent/50"
                     title="Manage Subscription & Billing"
                 >
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-1.5 font-semibold">
-                            <CreditCard class="size-3.5 text-primary" />
-                            <span>{{ currentSubscription.plan }}</span>
+                    <!-- 1. Plan Title & Status / Upgrade / Arrow -->
+                    <div class="flex items-center justify-between gap-1.5">
+                        <div class="flex min-w-0 items-center gap-1.5">
+                            <span
+                                class="truncate font-semibold tracking-tight text-sidebar-foreground transition-colors group-hover/sub:text-primary"
+                            >
+                                {{ currentSubscription.plan }}
+                            </span>
+                            <span
+                                v-if="!isFreePlan && !isCancelled"
+                                class="text-[10px] text-muted-foreground capitalize"
+                            >
+                                · {{ currentSubscription.billing_period }}
+                            </span>
                         </div>
+
+                        <!-- If Cancelled: Show Days Left Pill -->
                         <span
-                            class="py-0.2 inline-flex items-center rounded bg-emerald-500/10 px-1.5 font-mono text-[10px] font-medium text-emerald-600 uppercase dark:text-emerald-400"
+                            v-if="isCancelled"
+                            class="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-amber-600 dark:text-amber-400"
                         >
-                            {{ currentSubscription.status }}
+                            <span
+                                class="size-1.5 animate-pulse rounded-full bg-amber-500"
+                            />
+                            {{ daysRemaining }}d left
+                        </span>
+
+                        <!-- If Free Plan: Mini Upgrade Tag -->
+                        <span
+                            v-else-if="isFreePlan"
+                            class="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary"
+                        >
+                            <span>Upgrade</span>
+                            <ArrowUpRight class="size-3" />
+                        </span>
+
+                        <!-- Subtle hover arrow indicator -->
+                        <ArrowUpRight
+                            v-else
+                            class="size-3.5 text-muted-foreground/40 transition-all group-hover/sub:translate-x-0.5 group-hover/sub:-translate-y-0.5 group-hover/sub:text-sidebar-foreground"
+                        />
+                    </div>
+
+                    <!-- 2. SaaS Social Media Publishing Quota: 30 Scheduled Posts per month -->
+                    <div class="space-y-1">
+                        <div
+                            class="flex items-center justify-between text-[11px]"
+                        >
+                            <span
+                                class="flex items-center gap-1.5 text-muted-foreground"
+                            >
+                                <Calendar
+                                    class="size-3 text-muted-foreground/80"
+                                />
+                                <span>Scheduled Posts</span>
+                            </span>
+                            <span class="font-mono text-xs">
+                                <span
+                                    class="font-semibold text-sidebar-foreground"
+                                    >{{ postsQuota.used }}</span
+                                >
+                                <span class="text-muted-foreground/70">
+                                    / {{ postsQuota.limit }}</span
+                                >
+                            </span>
+                        </div>
+                        <!-- Micro Progress Bar -->
+                        <div
+                            class="h-1.5 w-full overflow-hidden rounded-full bg-sidebar-accent"
+                        >
+                            <div
+                                class="h-full rounded-full transition-all duration-500 ease-out"
+                                :class="[
+                                    postsUsagePercentage >= 90
+                                        ? 'bg-amber-500'
+                                        : 'bg-primary',
+                                ]"
+                                :style="{ width: `${postsUsagePercentage}%` }"
+                            />
+                        </div>
+                        <div
+                            class="flex items-center justify-between text-[10px] text-muted-foreground"
+                        >
+                            <span>{{ postsQuota.label }}</span>
+                            <span class="font-mono"
+                                >{{ postsUsagePercentage }}%</span
+                            >
+                        </div>
+                    </div>
+
+                    <!-- 3. Connected Channels Quota -->
+                    <div
+                        class="flex items-center justify-between pt-0.5 text-[11px] text-muted-foreground"
+                    >
+                        <span class="flex items-center gap-1.5">
+                            <Radio class="size-3 text-muted-foreground/80" />
+                            <span>Channels Reach</span>
+                        </span>
+                        <span class="font-mono text-xs text-sidebar-foreground">
+                            {{ channelUsage.connected }} /
+                            {{ channelUsage.limit }}
                         </span>
                     </div>
+
+                    <!-- 4. Dynamic Actions / State Banners (Flat) -->
+                    <!-- Free Plan Full Upgrade Button -->
+                    <div v-if="isFreePlan" class="pt-0.5">
+                        <div
+                            class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition group-hover/sub:bg-primary/90"
+                        >
+                            <Zap class="size-3.5 fill-current" />
+                            <span>Upgrade to Pro</span>
+                            <ArrowUpRight class="size-3.5" />
+                        </div>
+                    </div>
+
+                    <!-- Cancelled State Warning Notice with Days Remaining -->
                     <div
-                        class="flex items-center justify-between text-[11px] text-muted-foreground"
+                        v-else-if="isCancelled"
+                        class="flex items-center justify-between rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-700 dark:text-amber-400"
                     >
+                        <span class="truncate"
+                            >Cancels in {{ daysRemaining }} days</span
+                        >
                         <span
-                            >{{ currentSubscription.seats }} Seats
-                            Included</span
+                            class="ml-1 shrink-0 font-semibold underline hover:text-amber-800 dark:hover:text-amber-200"
                         >
-                        <span class="capitalize"
-                            >{{
-                                currentSubscription.billing_period
-                            }}
-                            billing</span
-                        >
+                            Renew
+                        </span>
                     </div>
                 </Link>
+
+                <!-- Collapsed State Icon Trigger -->
+                <div class="hidden group-data-[collapsible=icon]:block">
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                as-child
+                                :tooltip="
+                                    isCancelled
+                                        ? `Subscription cancels in ${daysRemaining} days`
+                                        : isFreePlan
+                                          ? 'Free Plan — Upgrade to Pro'
+                                          : `${currentSubscription.plan} (${postsQuota.used}/${postsQuota.limit} posts)`
+                                "
+                            >
+                                <Link
+                                    :href="`/w/${currentSlug}/settings?tab=billing`"
+                                >
+                                    <Zap
+                                        :class="[
+                                            'size-4',
+                                            isCancelled
+                                                ? 'text-amber-500'
+                                                : 'text-primary',
+                                        ]"
+                                    />
+                                    <span class="sr-only"
+                                        >Billing & Subscription</span
+                                    >
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </div>
 
                 <SidebarSeparator />
 
@@ -333,7 +554,12 @@ const activeBreadcrumbs = computed(() => {
                                     <div
                                         class="flex aspect-square size-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold text-foreground"
                                     >
-                                        <UserIcon class="size-4" />
+                                        <span v-if="currentUser.name">{{
+                                            currentUser.name
+                                                .charAt(0)
+                                                .toUpperCase()
+                                        }}</span>
+                                        <UserIcon v-else class="size-4" />
                                     </div>
                                     <div
                                         class="grid min-w-0 flex-1 text-left text-sm leading-tight"
@@ -341,12 +567,12 @@ const activeBreadcrumbs = computed(() => {
                                         <span
                                             class="truncate font-semibold text-sidebar-foreground"
                                         >
-                                            Workspace Admin
+                                            {{ currentUser.name }}
                                         </span>
                                         <span
                                             class="truncate text-xs text-sidebar-foreground/70"
                                         >
-                                            admin@example.com
+                                            {{ currentUser.email }}
                                         </span>
                                     </div>
                                     <ChevronsUpDown
@@ -367,17 +593,23 @@ const activeBreadcrumbs = computed(() => {
                                         <div
                                             class="flex size-7 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium"
                                         >
-                                            <UserIcon class="size-3.5" />
+                                            <span v-if="currentUser.name">{{
+                                                currentUser.name
+                                                    .charAt(0)
+                                                    .toUpperCase()
+                                            }}</span>
+                                            <UserIcon v-else class="size-3.5" />
                                         </div>
                                         <div
                                             class="grid flex-1 text-left text-xs"
                                         >
-                                            <span class="truncate font-semibold"
-                                                >Workspace Admin</span
+                                            <span
+                                                class="truncate font-semibold"
+                                                >{{ currentUser.name }}</span
                                             >
                                             <span
                                                 class="truncate text-muted-foreground"
-                                                >admin@example.com</span
+                                                >{{ currentUser.email }}</span
                                             >
                                         </div>
                                     </div>

@@ -34,7 +34,9 @@ const limit = computed(() => billingStore.totalChannelLimit);
 
 const handleUpgradeBasePlan = () => {
     isOpen.value = false;
-    router.visit(`/w/${currentSlug.value}/settings/billing?changePlan=true`);
+    router.visit(
+        `/w/${currentSlug.value}/settings?tab=billing&changePlan=true`,
+    );
 };
 
 const handleAddExtraChannelsPack = () => {

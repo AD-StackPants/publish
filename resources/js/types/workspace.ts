@@ -1,9 +1,12 @@
 export type TenantSubscription = {
     plan: string;
-    status: 'active' | 'trialing' | 'past_due';
+    status: 'active' | 'trialing' | 'past_due' | 'canceled';
     seats: number;
     billing_period: 'monthly' | 'yearly';
     renews_at?: string;
+    cancel_at_period_end?: boolean;
+    scheduled_posts_limit?: number;
+    scheduled_posts_used?: number;
 };
 
 export type Organization = {
