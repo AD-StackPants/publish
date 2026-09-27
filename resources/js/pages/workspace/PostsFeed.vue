@@ -3,7 +3,6 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { router, Link, usePage, Head } from '@inertiajs/vue3';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { apiClient } from '@/api/client';
-import { INITIAL_POSTS, DEFAULT_ORG } from '@/mocks/data';
 import PostInspectionDrawer from '@/components/PostInspectionDrawer.vue';
 import type { Post } from '@/types/workspace';
 import {
@@ -37,13 +36,7 @@ import {
 const page = usePage();
 const workspaceStore = useWorkspaceStore();
 
-const allPosts = ref<Post[]>(
-    INITIAL_POSTS.filter(
-        (p) =>
-            p.organization_id ===
-            (workspaceStore.activeOrgId || DEFAULT_ORG.id),
-    ),
-);
+const allPosts = ref<Post[]>([]);
 const isLoading = ref(false);
 
 // View mode: 'list' (Queue) or 'calendar' (Week Grid)
@@ -161,22 +154,10 @@ const fetchPosts = async () => {
     isLoading.value = true;
     try {
         const res = await apiClient.get<Post[]>('/posts');
-        if (res.data && res.data.length > 0) {
-            allPosts.value = res.data;
-        } else {
-            const orgId = workspaceStore.activeOrgId || DEFAULT_ORG.id;
-            allPosts.value = INITIAL_POSTS.filter(
-                (p) => p.organization_id === orgId,
-            );
-        }
+        allPosts.value = Array.isArray(res.data) ? res.data : [];
     } catch (err) {
         console.error('Failed to load posts', err);
-        if (allPosts.value.length === 0) {
-            const orgId = workspaceStore.activeOrgId || DEFAULT_ORG.id;
-            allPosts.value = INITIAL_POSTS.filter(
-                (p) => p.organization_id === orgId,
-            );
-        }
+        allPosts.value = [];
     } finally {
         isLoading.value = false;
     }
