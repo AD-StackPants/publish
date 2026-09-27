@@ -204,7 +204,9 @@ const activeBreadcrumbs = computed(() => {
                             <div
                                 class="grid min-w-0 flex-1 text-left text-sm leading-tight"
                             >
+                                <!-- !FIXME: Hydration text content mismatch -->
                                 <span
+                                    data-allow-mismatch
                                     class="truncate font-semibold tracking-tight text-sidebar-foreground"
                                 >
                                     {{
