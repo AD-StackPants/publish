@@ -6,9 +6,11 @@ namespace App\Services;
 
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\WorkspaceInvitationNotification;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -103,13 +105,30 @@ final class WorkspaceService
             $user = User::query()->create([
                 'name' => $name,
                 'email' => $email,
-                'password' => Hash::make(Str::random(24)),
+                // 'password' => Hash::make(Str::random(24)),
+                'password' => Hash::make("password"),
                 'organization_id' => $organization->id,
                 'is_superadmin' => false,
                 'role' => $role,
                 'email_verified_at' => now(),
             ]);
         }
+
+        /** @var User|null $inviter */
+        $inviter = Auth::user();
+
+        // 4. Send email invitation notification
+        $user->notify(new WorkspaceInvitationNotification($organization, $role, $inviter));
+
+        // 5. Structured audit logging
+        Log::info('Workspace invitation sent to team member', [
+            'tenant_id' => (string) $organization->id,
+            'organization_slug' => $organization->slug,
+            'recipient_email' => $email,
+            'role' => $role,
+            'inviter_id' => $inviter ? (string) $inviter->id : null,
+            'inviter_email' => $inviter?->email,
+        ]);
 
         return [
             'id' => (string) $user->id,

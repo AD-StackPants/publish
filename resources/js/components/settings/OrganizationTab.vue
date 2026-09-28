@@ -31,10 +31,16 @@ export interface WorkspaceMember {
 
 const props = withDefaults(
     defineProps<{
+        organizationId?: string;
+        organizationName?: string;
+        tenantSlug?: string;
         members?: WorkspaceMember[];
         totalSeats?: number;
     }>(),
     {
+        organizationId: '',
+        organizationName: '',
+        tenantSlug: '',
         members: () => [],
         totalSeats: 5,
     },
@@ -42,9 +48,18 @@ const props = withDefaults(
 
 const workspaceStore = useWorkspaceStore();
 
+const resolvedOrgId = computed(
+    () =>
+        props.organizationId ||
+        workspaceStore.currentOrg?.id ||
+        workspaceStore.activeOrgId,
+);
+
 // Organization profile state
-const orgName = ref(workspaceStore.currentOrg?.name || '');
-const orgSlug = ref(workspaceStore.currentOrg?.slug || '');
+const orgName = ref(
+    props.organizationName || workspaceStore.currentOrg?.name || '',
+);
+const orgSlug = ref(props.tenantSlug || workspaceStore.currentOrg?.slug || '');
 const selectedTimezone = ref(workspaceStore.currentOrg?.timezone || 'UTC');
 const timezoneSearch = ref('');
 const isTimezoneDropdownOpen = ref(false);
@@ -77,10 +92,16 @@ const openInviteModal = () => {
 };
 
 const fetchMembers = async () => {
-    if (!workspaceStore.currentOrg?.id) return;
+    const orgId = resolvedOrgId.value;
+    if (!orgId) return;
     try {
         const res = await apiClient.get<WorkspaceMember[]>(
-            `/organizations/${workspaceStore.currentOrg.id}/members`,
+            `/organizations/${orgId}/members`,
+            {
+                headers: {
+                    'X-Organization-Id': orgId,
+                },
+            },
         );
         if (Array.isArray(res.data) && res.data.length > 0) {
             localMembers.value = res.data;
@@ -167,9 +188,10 @@ const seatsPercentage = computed(() => {
 });
 
 const copyTenantId = async () => {
-    if (!workspaceStore.currentOrg?.id) return;
+    const idToCopy = resolvedOrgId.value;
+    if (!idToCopy) return;
     try {
-        await navigator.clipboard.writeText(workspaceStore.currentOrg.id);
+        await navigator.clipboard.writeText(idToCopy);
         copiedId.value = true;
         setTimeout(() => {
             copiedId.value = false;
@@ -220,7 +242,7 @@ const handleSendInvite = async () => {
         return;
     }
 
-    const orgId = workspaceStore.currentOrg?.id;
+    const orgId = resolvedOrgId.value;
     if (!orgId) {
         inviteError.value = 'No active organization selected.';
         return;
@@ -235,6 +257,11 @@ const handleSendInvite = async () => {
             {
                 email,
                 role: inviteRole.value,
+            },
+            {
+                headers: {
+                    'X-Organization-Id': orgId,
+                },
             },
         );
 
@@ -274,12 +301,16 @@ const handleRemoveMember = async (id: string) => {
         return;
     }
 
-    const orgId = workspaceStore.currentOrg?.id;
+    const orgId = resolvedOrgId.value;
     if (!orgId) return;
 
     isRemovingMember.value = id;
     try {
-        await apiClient.delete(`/organizations/${orgId}/members/${id}`);
+        await apiClient.delete(`/organizations/${orgId}/members/${id}`, {
+            headers: {
+                'X-Organization-Id': orgId,
+            },
+        });
         localMembers.value = localMembers.value.filter((m) => m.id !== id);
     } catch (err: unknown) {
         const axiosErr = err as {
@@ -351,9 +382,8 @@ const handleRemoveMember = async (id: string) => {
                     <span
                         >ID:
                         {{
-                            workspaceStore.currentOrg?.id
-                                ? workspaceStore.currentOrg.id.slice(0, 8) +
-                                  '...'
+                            resolvedOrgId
+                                ? resolvedOrgId.slice(0, 8) + '...'
                                 : '...'
                         }}</span
                     >

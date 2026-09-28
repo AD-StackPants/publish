@@ -83,8 +83,17 @@ Route::middleware(['auth', 'verified', EnsureTenantAccess::class])->prefix('w/{t
             ->values()
             ->all();
 
+        $seats = 5;
+        if ($organization->subscription) {
+            $basePlan = $organization->subscription->basePlan();
+            $seats = (int) ($basePlan?->features['team_members'] ?? 5);
+        }
+
         return Inertia::render('workspace/Settings', [
             'tenant_slug' => $tenant_slug,
+            'organization_id' => (string) $organization->id,
+            'organization_name' => $organization->name,
+            'organization_seats' => $seats,
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
             'canManageTwoFactor' => $canManageTwoFactor,

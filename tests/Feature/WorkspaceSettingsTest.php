@@ -2,6 +2,8 @@
 
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\WorkspaceInvitationNotification;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests are redirected when attempting to access workspace settings', function () {
@@ -61,6 +63,8 @@ test('organization member can invite a new team member', function () {
         'role' => 'Admin',
     ]);
 
+    Notification::fake();
+
     $this->actingAs($user);
 
     $response = $this->postJson("/api/v1/organizations/{$org->id}/members", [
@@ -78,6 +82,9 @@ test('organization member can invite a new team member', function () {
         'email' => 'jane@example.com',
         'role' => 'Editor',
     ]);
+
+    $invitedUser = User::query()->where('email', 'jane@example.com')->firstOrFail();
+    Notification::assertSentTo($invitedUser, WorkspaceInvitationNotification::class);
 });
 
 test('cannot invite member if email already belongs to organization', function () {

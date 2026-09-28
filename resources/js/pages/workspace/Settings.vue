@@ -22,6 +22,9 @@ import {
 
 interface Props {
     tenant_slug: string;
+    organization_id?: string;
+    organization_name?: string;
+    organization_seats?: number;
     mustVerifyEmail?: boolean;
     status?: string;
     canManageTwoFactor?: boolean;
@@ -34,6 +37,9 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    organization_id: '',
+    organization_name: '',
+    organization_seats: 5,
     mustVerifyEmail: false,
     status: '',
     canManageTwoFactor: false,
@@ -211,9 +217,14 @@ const currentPlanName = computed(
             <!-- 1. Organization Settings -->
             <OrganizationTab
                 v-if="activeTab === 'organization'"
+                :organization-id="props.organization_id"
+                :organization-name="props.organization_name"
+                :tenant-slug="props.tenant_slug"
                 :members="props.members"
                 :total-seats="
-                    workspaceStore.currentOrg?.subscription?.seats || 5
+                    props.organization_seats ||
+                    workspaceStore.currentOrg?.subscription?.seats ||
+                    5
                 "
             />
 
