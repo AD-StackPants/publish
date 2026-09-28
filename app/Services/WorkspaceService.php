@@ -35,6 +35,55 @@ final class WorkspaceService
     }
 
     /**
+     * Resolve the active organization for a user, or provision a default workspace if none exists.
+     */
+    public function resolveUserOrganization(User $user, ?string $preferredSlug = null): Organization
+    {
+        /** @var Organization|null $organization */
+        $organization = null;
+
+        if ($user->isSuperAdmin()) {
+            if (is_string($preferredSlug) && ! empty($preferredSlug)) {
+                $organization = Organization::query()->where('slug', $preferredSlug)->first();
+            }
+            if (! $organization) {
+                $organization = $user->organization ?? Organization::query()->first();
+            }
+        } else {
+            $organization = $user->organization;
+        }
+
+        if (! $organization) {
+            $baseSlug = Str::slug($user->name);
+            $slug = ! empty($baseSlug) ? $baseSlug : 'workspace';
+            if (Organization::query()->where('slug', $slug)->exists()) {
+                $slug .= '-'.Str::lower(Str::random(4));
+            }
+
+            $organization = Organization::query()->create([
+                'name' => $user->name.' Workspace',
+                'slug' => $slug,
+                'timezone' => 'UTC',
+            ]);
+
+            $user->update(['organization_id' => $organization->id]);
+        }
+
+        return $organization;
+    }
+
+    public function getSeatsLimit(Organization $organization): int
+    {
+        if ($organization->subscription) {
+            $basePlan = $organization->subscription->basePlan();
+
+            return (int) ($basePlan?->features['team_members'] ?? 5);
+        }
+
+        return 5;
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     public function updateOrganization(string $id, array $data): Organization
@@ -71,12 +120,7 @@ final class WorkspaceService
     public function inviteMember(Organization $organization, string $email, string $role = 'Editor'): array
     {
         // 1. Check seat limits
-        $subscription = $organization->subscription;
-        $seatsLimit = 5;
-        if ($subscription) {
-            $basePlan = $subscription->basePlan();
-            $seatsLimit = (int) ($basePlan?->features['team_members'] ?? 5);
-        }
+        $seatsLimit = $this->getSeatsLimit($organization);
 
         if ($organization->users()->count() >= $seatsLimit) {
             throw ValidationException::withMessages([
@@ -106,7 +150,7 @@ final class WorkspaceService
                 'name' => $name,
                 'email' => $email,
                 // 'password' => Hash::make(Str::random(24)),
-                'password' => Hash::make("password"),
+                'password' => Hash::make('password'),
                 'organization_id' => $organization->id,
                 'is_superadmin' => false,
                 'role' => $role,
