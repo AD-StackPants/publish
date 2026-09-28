@@ -31,6 +31,8 @@ import {
     Share2,
     X,
     AlertTriangle,
+    Radio,
+    Plus,
 } from '@lucide/vue';
 
 const workspaceStore = useWorkspaceStore();
@@ -1693,7 +1695,10 @@ const handleDispatch = async (publishImmediate = false) => {
                             </span>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-1.5">
+                        <div
+                            v-if="accounts.length > 0"
+                            class="flex flex-wrap items-center gap-1.5"
+                        >
                             <button
                                 type="button"
                                 @click="selectAllAvailable"
@@ -1764,6 +1769,14 @@ const handleDispatch = async (publishImmediate = false) => {
                                 Clear All
                             </button>
                         </div>
+                        <Link
+                            v-else
+                            :href="`/w/${workspaceStore.activeOrgSlug || 'workspace'}/channels`"
+                            class="inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-primary transition hover:underline"
+                        >
+                            <span>Add Channels</span>
+                            <ExternalLink class="size-3" />
+                        </Link>
                     </div>
 
                     <!-- Revoked / No-Access Feedback Alert Banner -->
@@ -1807,6 +1820,7 @@ const handleDispatch = async (publishImmediate = false) => {
 
                     <!-- Standout Channel Cards Grid -->
                     <div
+                        v-if="accounts.length > 0"
                         class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3"
                     >
                         <div
@@ -1954,6 +1968,37 @@ const handleDispatch = async (publishImmediate = false) => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty State when no publishing channels connected -->
+                    <div
+                        v-else
+                        class="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/20 px-6 py-8 text-center"
+                    >
+                        <div
+                            class="flex size-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground shadow-2xs"
+                        >
+                            <Radio class="size-5" />
+                        </div>
+                        <h4 class="mt-3 text-sm font-semibold text-foreground">
+                            No publishing channels connected
+                        </h4>
+                        <p
+                            class="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground"
+                        >
+                            Connect your 𝕏 (Twitter), LinkedIn, or Facebook
+                            accounts to start drafting, previewing, and
+                            scheduling posts.
+                        </p>
+                        <div class="mt-4 flex items-center gap-2">
+                            <Link
+                                :href="`/w/${workspaceStore.activeOrgSlug || 'workspace'}/channels`"
+                                class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-2xs transition hover:bg-primary/90"
+                            >
+                                <Plus class="size-3.5" />
+                                <span>Connect Channel</span>
+                            </Link>
                         </div>
                     </div>
                 </div>
