@@ -1,121 +1,103 @@
-# Posexei — The Lightweight, Zero-Bloat Social Media Studio
+# Posexei — The Modern Social Media Publishing Studio
 
-> **Create Once. Tailor Everywhere. 100% Reliable Delivery.**  
-> Posexei is a streamlined, multi-tenant social media publishing platform purpose-built for **social media managers, startup founders, and software engineers** who want to distribute content effortlessly across 𝕏 (Twitter), LinkedIn, and Facebook without paying for bloated $200/month enterprise software.
+Create once. Tailor everywhere. 100% reliable delivery.
 
----
+Posexei is a multi-tenant social media publishing platform built for marketing agencies, startup founders, and social media managers who need to distribute content across X (Twitter), LinkedIn, and Facebook without the overhead of legacy $250/month tools.
 
-![Posexei Universal Social Studio](docs/images/composer-preview.png)
-_Figure 1: The Posexei Universal Studio Canvas with native live previews, solo targeting, and proactive channel health._
+![Universal Composer Component](docs/images/composer-component.png)
 
 ---
 
-## 💡 Why Posexei?
+## Why Clients Switch from Legacy Schedulers
 
-### ❌ The Problem: Bloated Enterprise Schedulers
+Most traditional social platforms were built over a decade ago for corporate bureaucracies. For modern agencies and agile marketing teams, they create friction:
 
-Most traditional social media management platforms (Hootsuite, Sprout Social, Sprinklr) were built a decade ago for bureaucratic corporate departments. Today, they are:
+- **Punitive Pricing**: Costs jump from $50/mo to $250+/mo the moment you add a new client or team member.
+- **Silent Dispatch Failures**: Expired account tokens cause scheduled posts to fail silently in the background with zero advance warning.
+- **Wasted Time**: Managing character limits and native nuances across 4-5 browser tabs slows down your weekly distribution.
+- **Feature Clutter**: Packed with obscure enterprise ticketing and listening tabs you pay for but never use.
 
-- **Overpriced**: Forcing you into $150–$300/month tiers just to connect an extra social account or invite a teammate.
-- **Overwhelmingly Bloated**: Cluttered with obscure social listening, enterprise ticketing, and training certifications that modern creators and agile teams never use.
-- **Unreliable**: Posts silently fail to publish because account tokens expired weeks ago without warning, leaving your audience in the dark.
-- **Clunky**: You still end up copying and pasting copy across multiple browser tabs to format hashtags or check image cropping.
+### The Posexei Solution
 
-### ✅ The Posexei Solution: Lightweight, Focused & Guaranteed
+Posexei is designed as a focused, high-velocity publishing studio:
 
-Posexei is intentionally designed as a **clean, high-velocity studio**:
-
-1. **Zero Bloat**: Only the tools you actually need—an intuitive composer, 1-click solo targeting, real-time native previews, and an interactive visual calendar.
-2. **Built for Founders, Engineers & Social Managers**: Keyboard-friendly, clean modern interface, fast Markdown editing, and instant channel switching.
-3. **Guaranteed Post Delivery**: Real-time token health checks before dispatch, automated retry checkpoints, safe idempotency keys, and transparent delivery logs so your post **always** goes live.
-4. **Fair, Modular Pricing**: Free tier for solo builders, $23/mo for growing brands, and $5/mo add-ons so you only pay for what you actually use.
-
----
-
-![Smart Solo Mode and Native Live Previews](docs/images/solo-mode-previews.png)
-_Figure 2: 1-Click Solo Mode automatically adjusts character limits and switches native previews instantly._
+| Capability | Legacy Tools (Hootsuite, Sprout) | Posexei Studio |
+| :--- | :--- | :--- |
+| **Agency Pricing** | $249 – $399+ / month | $0 – $23 / month |
+| **Additional Team Seats** | $99/mo per user | $10/mo add-ons |
+| **Delivery Guarantee** | Silent drops with no alerts | Pre-dispatch token checks & automatic retries |
+| **Channel Targeting** | Separate post creation per network | 1-Click Universal Composer + Smart Solo Mode |
+| **Client Management** | Shared single-account pools | Isolated Multi-Tenant Workspaces |
 
 ---
 
-## ⚡ Key Features for Social Managers & Creators
+## Core Capabilities for Growth Teams & Agencies
 
-### 1. Universal Composer with 1-Click Solo Mode
+### 1. Universal Composer & 1-Click Solo Mode
 
-- **Universal Post Canvas**: Draft a single announcement and publish it across 𝕏 (Twitter), LinkedIn, and Facebook at once.
-- **1-Click Solo Presets**: Want to draft a tweet today without touching LinkedIn? Hit **`𝕏 Twitter only`** or **`in LinkedIn only`**:
-    - Automatically isolates target accounts.
-    - Adjusts character counters dynamically (e.g. unlocking LinkedIn's full 3,000-character limit without false Twitter warnings).
-    - Auto-focuses the relevant preview.
-- **Platform-Specific Overrides**: Seamlessly customize copy specifically for X / Twitter, LinkedIn, or Facebook when you need nuanced messaging, different hashtags, or specialized CTAs.
+Draft an announcement once to distribute universally, or isolate target channels with a single click:
 
-### 2. Authentic Native Live Previews
+- **Dynamic Platform Adaptation**: Switching to `Twitter only` locks to 280 characters with single-image crops. Switching to `LinkedIn only` unlocks the full 3,000-character format with corporate header styling.
+- **Platform Overrides**: Adjust specific hashtags, mentions, or calls-to-action for individual networks without rewriting the core post.
 
-- **Real-Time Simulation**: Watch your post render in authentic platform styling as you type.
-- **𝕏 / Twitter Feed Card**: Simulates native avatars, handles, line wraps, and single-click interaction bars.
-- **LinkedIn Professional Card**: Preview corporate headers, follower tags, and formatted storytelling.
-- **Facebook Community Card**: View group/page layout, reactions bar, and thumbnail attachments before scheduling.
-
-### 3. Guaranteed Delivery & Zero Silent Failures
-
-- **Token Expiration Watchdog**: Posexei proactively monitors social account connection health and warns you before a token expires.
-- **Safe Idempotency Protection**: Every dispatch has a cryptographically unique idempotency key so network interruptions never duplicate your tweets or posts.
-- **Delivery Checkpoints**: Transparent status logs track every step (`Published`, `Scheduled`, or `Failed`) across each targeted account.
-
-### 4. Interactive Publishing Feed & Visual Calendar
-
-- **Chronological & Calendar Views**: Switch between real-time post queues, completed dispatches, and interactive monthly calendars.
-- **Drag-and-Drop Scheduling**: Organize weekly and monthly content velocity with preset shortcuts (`+24h`, `Weekend Drop`, custom dates).
-
-### 5. Multi-Tenant Workspaces for Agencies
-
-- **Strict Organization Separation**: Manage multiple client brands, startup subsidiaries, or product lines from one master account.
-- **Dedicated Channel Libraries**: Each workspace retains its own connected social profiles, media assets, drafts, and publication queues.
+![Smart Solo Mode & Live Previews Component](docs/images/solo-mode-component.png)
 
 ---
 
-![Interactive Calendar and Delivery Checkpoints](docs/images/calendar-checkpoints.png)
-_Figure 3: Interactive Visual Calendar with dispatch status tracking and checkpoint inspection._
+### 2. Multi-Tenant Workspaces Built for Agencies
+
+Manage every client account under dedicated, isolated organizations:
+
+- **Zero Cross-Contamination**: Each workspace retains its own connected social profiles, media library, publication queue, and team members.
+- **Role-Based Access**: Assign client contacts and team members with granular roles (`Owner`, `Admin`, `Editor`, `Contributor`).
+- **Instant Switching**: Toggle between client workspaces in one click from the studio header.
 
 ---
 
-## 🎯 Supported Social Platforms & Limits
+### 3. Proactive Token Health & 100% Delivery SLA
 
-| Platform        | Character Limit       | Media Support                           | Solo Mode Shortcut   |
-| :-------------- | :-------------------- | :-------------------------------------- | :------------------- |
-| **𝕏 / Twitter** | **280** characters    | Single image, aspect cropping, OG cards | `[𝕏 Twitter only]`   |
-| **LinkedIn**    | **3,000** characters  | Images, articles, rich links            | `[in LinkedIn only]` |
-| **Facebook**    | **63,206** characters | High-res photos, community updates      | `[f Facebook only]`  |
+Never miss a product launch or client campaign due to expired credentials:
 
----
-
-## 🛠️ How It Works (In 3 Simple Steps)
-
-1. **Pick Your Audience**: Select all connected channels for universal distribution, or click **`Twitter only`** / **`LinkedIn only`** to target a single platform.
-2. **Draft & Preview**: Write your content in the unified canvas. Check the authentic native preview on the right to see exactly how your post looks on mobile and desktop feeds.
-3. **Dispatch or Schedule**: Hit **`Post Tweet`** or **`Post to LinkedIn`** for instant delivery, or schedule it into your visual calendar for the perfect launch time.
+- **Token Expiration Watchdog**: Posexei tests and monitors social API credentials before posts are dispatched, notifying your team before a scheduled drop is affected.
+- **Idempotency Protection**: Cryptographic request keys prevent duplicate posts during network interruptions.
+- **Real-Time Checkpoints**: Audit every dispatch with clear logs confirming delivery across each target platform.
 
 ---
 
-![Modular Billing and Add-on Cart](docs/images/billing-addon-cart.png)
-_Figure 4: Transparent subscription tiers and slide-out modular add-on cart._
+### 4. Interactive Publishing Calendar & Pipeline
+
+Organize your content velocity across weeks and months:
+
+- **Visual Schedule Grid**: Review pending drops, published content, and channel coverage in an intuitive timeline.
+- **Fast Rescheduling**: Move drops to peak engagement hours or add quick turnaround slots with preset intervals.
+
+![Visual Content Calendar Component](docs/images/calendar-component.png)
 
 ---
 
-## 💳 Simple, Predictable Pricing
+## Simple, Predictable Pricing
 
-| Feature                | Free Starter       | Creator Pro _(Most Popular)_         | Agency Scale                         |
-| :--------------------- | :----------------- | :----------------------------------- | :----------------------------------- |
-| **Monthly Price**      | **$0**             | *_$29** / mo *($23 billed annually)_ | *_$89** / mo *($71 billed annually)_ |
-| **Workspaces**         | 1 Organization     | 3 Organizations                      | **Unlimited** Organizations          |
-| **Connected Channels** | Up to 3            | Up to 10                             | **25 included**                      |
-| **Scheduled Posts**    | 30 / month         | **Unlimited**                        | **Unlimited**                        |
-| **Composer Studio**    | Universal Composer | Universal + Smart Solo Mode          | Universal + Solo + Team Queues       |
-| **Previews**           | Standard           | Real-Time Native Previews            | Real-Time Native Previews            |
-| **Channel Health**     | Basic              | Proactive Token Warnings             | Priority Queue & SLA Support         |
-| **A La Carte Add-ons** | —                  | Channels ($5/mo), Seats ($10/mo)     | Channels ($5/mo), Seats ($10/mo)     |
+Scale with your business without forced upgrades.
+
+| Plan | Monthly (Annual Billing) | Workspaces | Connected Channels | Scheduled Posts |
+| :--- | :--- | :--- | :--- | :--- |
+| **Free Starter** | **$0** (Free forever) | 1 Workspace | Up to 3 | 30 / month |
+| **Creator Pro** | **$23 / mo** ($29 billed monthly) | 3 Workspaces | Up to 10 | **Unlimited** |
+| **Agency Scale** | **$71 / mo** ($89 billed monthly) | **Unlimited** | 25 included | **Unlimited** |
+
+### Modular Add-ons
+
+Need extra capacity without jumping tiers?
+
+- **Additional Social Channel**: +$5 / month
+- **Additional Team Member**: +$10 / month
+
+![Modular Pricing & Add-on Component](docs/images/pricing-component.png)
 
 ---
 
-## 📄 License
+## Get Started
 
-Posexei is proprietary software developed for high-performance social media operations. All rights reserved.
+1. **Connect Channels**: Authenticate your X (Twitter), LinkedIn, and Facebook accounts.
+2. **Draft & Preview**: Write your content in the universal studio with live native previews.
+3. **Publish or Schedule**: Deploy instantly or plan your weekly distribution on the calendar.
